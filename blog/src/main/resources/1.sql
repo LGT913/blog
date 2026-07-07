@@ -1,0 +1,1 @@
+ALTER TABLE comment MODIFY parent_id BIGINT NULL;
