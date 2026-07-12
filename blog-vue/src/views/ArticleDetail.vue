@@ -22,6 +22,7 @@ const categoryName = computed(() => {
 const formatTime = (time) => {
   if (!time) return ''
   const date = new Date(time)
+  if (isNaN(date.getTime())) return time
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -48,7 +49,6 @@ const isOwner = computed(() => {
 const loadArticle = async () => {
   loading.value = true
   error.value = ''
-
   try {
     article.value = await articleApi.get(route.params.id)
   } catch (e) {
@@ -68,7 +68,6 @@ const loadCategories = async () => {
 
 const handleDelete = async () => {
   if (!confirm('确定要删除这篇文章吗？')) return
-
   try {
     await articleApi.delete(article.value.id)
     router.push('/')
@@ -91,7 +90,6 @@ onMounted(() => {
   <div class="page">
     <main class="main">
       <div class="article-container">
-        <!-- 返回按钮 -->
         <button class="back-btn" @click="router.push('/')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -118,7 +116,6 @@ onMounted(() => {
         </div>
 
         <article v-else-if="article" class="article">
-          <!-- 文章头部 -->
           <header class="article-header">
             <div class="article-meta-top">
               <span class="category-tag">{{ categoryName }}</span>
@@ -152,6 +149,13 @@ onMounted(() => {
                   </svg>
                   {{ readTime }} 分钟阅读
                 </span>
+                <span v-if="article.viewCount !== undefined" class="stat-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  {{ article.viewCount }} 阅读
+                </span>
                 <span v-if="article.updateTime && article.updateTime !== article.createTime" class="stat-item">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 4v6h6"></path>
@@ -164,10 +168,8 @@ onMounted(() => {
             </div>
           </header>
 
-          <!-- 分割线 -->
           <div class="divider"></div>
 
-          <!-- 操作栏 -->
           <div v-if="isOwner" class="action-bar">
             <button class="action-btn edit" @click="handleEdit">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -185,6 +187,12 @@ onMounted(() => {
             </button>
           </div>
 
+          <!-- AI 摘要 -->
+          <div v-if="article.summary" class="ai-summary-block">
+            <div class="ai-summary-label">AI 摘要</div>
+            <div class="ai-summary-content">{{ article.summary }}</div>
+          </div>
+
           <!-- 文章内容 -->
           <div class="article-content">
             <p v-for="(para, idx) in article.content.split('\n').filter(p => p.trim())" :key="idx">
@@ -192,6 +200,17 @@ onMounted(() => {
             </p>
           </div>
         </article>
+
+        <div v-else class="error-state">
+          <div class="error-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+          </div>
+          <p class="error-text">文章不存在或已被删除</p>
+          <button class="retry-btn" @click="router.push('/')">返回首页</button>
+        </div>
       </div>
     </main>
   </div>
@@ -226,7 +245,10 @@ onMounted(() => {
   color: var(--color-text-secondary);
   padding: 8px 12px;
   margin-left: -12px;
+  border: none;
+  background: none;
   border-radius: var(--radius-md);
+  cursor: pointer;
   transition: all var(--transition-fast);
 }
 
@@ -235,7 +257,6 @@ onMounted(() => {
   background: var(--color-primary-light);
 }
 
-/* 加载/错误状态 */
 .loading-state,
 .error-state {
   display: flex;
@@ -285,14 +306,16 @@ onMounted(() => {
   font-weight: var(--font-weight-medium);
   color: #ffffff;
   background: var(--color-primary);
+  border: none;
   border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
 }
 
 .retry-btn:hover {
   background: var(--color-primary-hover);
 }
 
-/* 文章样式 */
 .article {
   background: var(--color-bg-card);
   border-radius: var(--radius-xl);
@@ -316,8 +339,6 @@ onMounted(() => {
   color: var(--color-primary);
   background: var(--color-primary-light);
   border-radius: var(--radius-full);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
 }
 
 .article-title {
@@ -411,7 +432,9 @@ onMounted(() => {
   padding: 8px 16px;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
+  border: none;
   border-radius: var(--radius-md);
+  cursor: pointer;
   transition: all var(--transition-fast);
 }
 
@@ -437,6 +460,33 @@ onMounted(() => {
   border-color: var(--color-error);
 }
 
+.ai-summary-block {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: var(--space-8);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.ai-summary-label {
+  display: inline-block;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #3b82f6;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.ai-summary-content {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--color-text-primary);
+}
+
 .article-content {
   font-size: var(--font-size-lg);
   line-height: 2;
@@ -453,7 +503,6 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
-/* 动画 */
 @keyframes fadeInUp {
   from {
     opacity: 0;

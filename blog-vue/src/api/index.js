@@ -2,40 +2,41 @@ const BASE_URL = '/api'
 
 const request = async (url, options = {}) => {
   try {
-    console.log(`[API请求] ${url}`, options)
-    
+    const token = localStorage.getItem('blog_token')
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    if (token) {
+      headers['Authorization'] = token
+    }
+
     const response = await fetch(`${BASE_URL}${url}`, {
+      ...options,
       headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
-      ...options
+        ...headers,
+        ...(options.headers || {})
+      }
     })
-    
-    console.log(`[API响应] ${url} status: ${response.status}`)
-    
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`[API错误] ${url} body:`, errorText)
       throw new Error(`请求失败: ${response.status} ${response.statusText}`)
     }
-    
+
     const text = await response.text()
-    console.log(`[API数据] ${url} body:`, text)
-    
+
     let data
     try {
       data = JSON.parse(text)
     } catch (e) {
       throw new Error('服务器返回数据格式错误')
     }
-    
+
     if (data.code !== 200) {
       throw new Error(data.message || '请求失败')
     }
     return data.data
   } catch (e) {
-    console.error(`[API异常] ${url}:`, e.message)
     if (e.message.includes('Failed to fetch')) {
       throw new Error('无法连接到服务器，请检查后端服务是否启动')
     }
@@ -67,7 +68,9 @@ export const articleApi = {
   }),
   delete: (id) => request(`/article/delete/${id}`, {
     method: 'DELETE'
-  })
+  }),
+  rankingByViews: () => request('/article/ranking/views'),
+  rankingByLatest: () => request('/article/ranking/latest')
 }
 
 export const categoryApi = {
@@ -83,5 +86,17 @@ export const categoryApi = {
   }),
   delete: (id) => request(`/category/delete/${id}`, {
     method: 'DELETE'
+  })
+}
+
+export const noticeApi = {
+  list: () => request('/notice/list')
+}
+
+export const siteApi = {
+  getConfig: (configKey) => request(`/site/config?configKey=${encodeURIComponent(configKey)}`),
+  updateConfig: (configKey, configValue) => request(`/site/config/blog-info`, {
+    method: 'POST',
+    body: JSON.stringify({ configKey, configValue })
   })
 }

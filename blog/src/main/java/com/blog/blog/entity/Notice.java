@@ -7,33 +7,23 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name="article")
-public class Article {
+@Table(name = "notice")
+public class Notice {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable=false)
+    @Column(nullable = false)
     private String title;
 
     @Lob
+    @Column(nullable = false)
     private String content;
-
-    @Column(nullable = false)
-    private Long userId;
-
-    @Column(nullable = false)
-    private String categoryId;
 
     @Column(nullable = false)
     private LocalDateTime createTime;
 
-    @Column(nullable=false)
+    @Column(nullable = false)
     private LocalDateTime updateTime;
-
-    @Column(name="summary",length=500)
-    private String summary;
-
-    @Column(columnDefinition = "int default 0")
-    private Integer viewCount = 0;
 }

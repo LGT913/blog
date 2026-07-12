@@ -90,6 +90,12 @@ const handleEdit = (e) => {
 
       <h3 class="title">{{ article.title }}</h3>
 
+      <div v-if="article.summary" class="ai-summary">
+        <div class="ai-summary-bar"></div>
+        <div class="ai-summary-text">{{ article.summary }}</div>
+      </div>
+      <div v-else class="ai-summary-loading">AI 摘要生成中...</div>
+
       <p class="excerpt">{{ excerpt }}</p>
 
       <div class="card-footer">
@@ -159,6 +165,36 @@ const handleEdit = (e) => {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+}
+
+.ai-summary {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--color-bg, #f8f9fa);
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+.ai-summary-bar {
+  width: 3px;
+  flex-shrink: 0;
+  background: #3b82f6;
+  border-radius: 2px;
+}
+
+.ai-summary-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-secondary, #4b5563);
+}
+
+.ai-summary-loading {
+  font-size: 14px;
+  line-height: 1.6;
+  font-style: italic;
+  color: var(--color-text-muted, #9ca3af);
+  padding: 4px 0;
 }
 
 .category-tag {

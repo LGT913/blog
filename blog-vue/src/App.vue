@@ -1,12 +1,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { RouterView } from 'vue-router'
 import { useUserStore } from './store/user'
+import { useSiteStore } from './store/site'
 import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 import LoginModal from './components/LoginModal.vue'
 import RegisterModal from './components/RegisterModal.vue'
 
 const userStore = useUserStore()
+const siteStore = useSiteStore()
 
 const showLogin = ref(false)
 const showRegister = ref(false)
@@ -39,6 +43,7 @@ const handleSwitchToLogin = () => {
 
 onMounted(() => {
   userStore.init()
+  siteStore.loadConfig()
 })
 </script>
 
@@ -50,6 +55,8 @@ onMounted(() => {
     />
     
     <RouterView />
+
+    <Footer />
 
     <Transition name="modal">
       <LoginModal 
@@ -72,5 +79,11 @@ onMounted(() => {
 <style>
 .app-container {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container > main {
+  flex: 1;
 }
 </style>

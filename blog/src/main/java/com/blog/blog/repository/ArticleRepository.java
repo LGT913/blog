@@ -11,4 +11,10 @@ import java.util.List;
 public interface ArticleRepository extends JpaRepository<Article, Long> {
     List<Article> findByUserIdOrderByCreateTimeDesc(Long userId);
     List<Article> findAllByOrderByCreateTimeDesc();
+
+    // 获取阅读量排行（前10条，按阅读数降序排列）
+    List<Article> findTop10ByOrderByViewCountDesc();
+
+    // 获取最新发布排行（前10条，按创建时间降序排列）
+    List<Article> findTop10ByOrderByCreateTimeDesc();
 }

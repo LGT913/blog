@@ -49,4 +49,16 @@ public class ArticleController {
         articleService.deleteArticle(id);
         return Result.success("删除成功");
     }
+
+    @GetMapping("/ranking/views")
+    public Result<List<Article>> getArticleRankingByViews() {
+        List<Article> articles = articleService.getArticleRankingByViews();
+        return Result.success(articles);
+    }
+
+    @GetMapping("/ranking/latest")
+    public Result<List<Article>> getArticleRankingByLatest() {
+        List<Article> articles = articleService.getArticleRankingByLatest();
+        return Result.success(articles);
+    }
 }

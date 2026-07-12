@@ -24,8 +24,8 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
-    const user = await userApi.login({ username: username.value, password: password.value })
-    userStore.login(user)
+    const result = await userApi.login({ username: username.value, password: password.value })
+    userStore.login(result.user, result.token)
     emit('close')
     router.push('/')
   } catch (e) {

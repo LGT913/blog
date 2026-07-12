@@ -2,16 +2,24 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
+import { useSiteStore } from '../store/site'
 
 const emit = defineEmits(['open-login', 'open-register'])
 
 const router = useRouter()
 const userStore = useUserStore()
+const siteStore = useSiteStore()
 
-const navItems = [
-  { path: '/', label: '首页' },
-  { path: '/categories', label: '分类管理' }
-]
+const navItems = computed(() => {
+  const items = [
+    { path: '/', label: '首页' },
+    { path: '/categories', label: '分类管理' }
+  ]
+  if (userStore.state.isLoggedIn) {
+    items.push({ path: '/admin/config', label: '网站配置' })
+  }
+  return items
+})
 
 const currentPath = computed(() => router.currentRoute.value.path)
 
@@ -38,7 +46,7 @@ const handleOpenRegister = () => {
     <div class="header-inner">
       <div class="logo" @click="router.push('/')">
         <span class="logo-icon">✦</span>
-        <span class="logo-text">My Blog</span>
+        <span class="logo-text">{{ siteStore.state.config.siteName }}</span>
       </div>
 
       <nav class="nav">

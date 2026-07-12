@@ -4,8 +4,10 @@ import com.blog.blog.common.RedisUtil;
 import com.blog.blog.entity.Article;
 import com.blog.blog.repository.ArticleRepository;
 import com.blog.blog.service.ArticleService;
+import com.blog.blog.service.DeepSeekService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,12 +21,21 @@ public class ArticleServiceImpl implements ArticleService {
     @Autowired
     private RedisUtil redisUtil;
 
+    @Autowired
+    private DeepSeekService deepSeekService;
+
     // Redis key 常量
     private static final String ARTICLE_LIST_KEY = "article:list";
-    private static final String ARTICLE_DETAIL_KEY = "article:detail:";
+    private static final String ARTICLE_DETAIL_KEY_PREFIX = "article:detail:";
+    private static final String ARTICLE_RANKING_VIEWS_KEY = "article:ranking:views";
+    private static final String ARTICLE_RANKING_LATEST_KEY = "article:ranking:latest";
+    private static final long ARTICLE_LIST_EXPIRE = 600L;
+    private static final long ARTICLE_DETAIL_EXPIRE = 1800L;
+    private static final long ARTICLE_RANKING_EXPIRE = 300L;
 
     @Override
     public Article createArticle(String title, String content, Long userId, String categoryId) {
+        //创建Article对象并赋值
         Article article = new Article();
         article.setTitle(title);
         article.setContent(content);
@@ -32,45 +43,52 @@ public class ArticleServiceImpl implements ArticleService {
         article.setCategoryId(categoryId);
         article.setCreateTime(LocalDateTime.now());
         article.setUpdateTime(LocalDateTime.now());
+
+        //调用AI生成摘要
+        String summary=deepSeekService.generateSummary(content);
+        article.setSummary(summary);
+
         article = articleRepository.save(article);
 
         // 创建文章后，删除列表缓存（下次查询时重新加载）
         redisUtil.delete(ARTICLE_LIST_KEY);
+        redisUtil.delete(ARTICLE_RANKING_VIEWS_KEY);
+        redisUtil.delete(ARTICLE_RANKING_LATEST_KEY);
 
         return article;
     }
 
     @Override
     public Article getArticle(Long id) {
-        String key = ARTICLE_DETAIL_KEY + id;
+        String key = ARTICLE_DETAIL_KEY_PREFIX + id;
 
         // 1. 先从 Redis 查
-        Article article = (Article) redisUtil.get(key);
-        if (article != null) {
-            return article;  // 缓存命中，直接返回
+        Object cacheObj = redisUtil.get(key);
+        if (!ObjectUtils.isEmpty(cacheObj)) {
+            return (Article) cacheObj;
         }
 
         // 2. 缓存未命中，从数据库查
-        article = articleRepository.findById(id).orElseThrow(() -> new RuntimeException("文章不存在"));
+        Article article = articleRepository.findById(id).orElseThrow(() -> new RuntimeException("文章不存在"));
 
         // 3. 写入 Redis，过期时间 30 分钟
-        redisUtil.set(key, article, 1800);
+        redisUtil.set(key, article, ARTICLE_DETAIL_EXPIRE);
         return article;
     }
 
     @Override
     public List<Article> getAllArticles() {
         // 1. 先从 Redis 查
-        List<Article> articles = (List<Article>) redisUtil.get(ARTICLE_LIST_KEY);
-        if (articles != null) {
-            return articles;  // 缓存命中，直接返回
+        Object cacheObj = redisUtil.get(ARTICLE_LIST_KEY);
+        if (!ObjectUtils.isEmpty(cacheObj)) {
+            return (List<Article>) cacheObj;
         }
 
         // 2. 缓存未命中，从数据库查
-        articles = articleRepository.findAllByOrderByCreateTimeDesc();
+        List<Article> articles = articleRepository.findAllByOrderByCreateTimeDesc();
 
         // 3. 写入 Redis，过期时间 10 分钟
-        redisUtil.set(ARTICLE_LIST_KEY, articles, 600);
+        redisUtil.set(ARTICLE_LIST_KEY, articles, ARTICLE_LIST_EXPIRE);
         return articles;
     }
 
@@ -88,9 +106,11 @@ public class ArticleServiceImpl implements ArticleService {
         article.setUpdateTime(LocalDateTime.now());
         article = articleRepository.save(article);
 
-        // 更新后，删除列表缓存和详情缓存
+        // 更新数据 → 只删除缓存，不主动写入缓存
         redisUtil.delete(ARTICLE_LIST_KEY);
-        redisUtil.set(ARTICLE_DETAIL_KEY + id, article, 1800);
+        redisUtil.delete(ARTICLE_DETAIL_KEY_PREFIX + id);
+        redisUtil.delete(ARTICLE_RANKING_VIEWS_KEY);
+        redisUtil.delete(ARTICLE_RANKING_LATEST_KEY);
 
         return article;
     }
@@ -100,8 +120,42 @@ public class ArticleServiceImpl implements ArticleService {
         Article article = articleRepository.findById(id).orElseThrow(() -> new RuntimeException("文章不存在"));
         articleRepository.delete(article);
 
-        // 删除后，清除列表缓存和详情缓存
+        // 删除数据 → 清理对应所有缓存
         redisUtil.delete(ARTICLE_LIST_KEY);
-        redisUtil.delete(ARTICLE_DETAIL_KEY + id);
+        redisUtil.delete(ARTICLE_DETAIL_KEY_PREFIX + id);
+        redisUtil.delete(ARTICLE_RANKING_VIEWS_KEY);
+        redisUtil.delete(ARTICLE_RANKING_LATEST_KEY);
+    }
+
+    @Override
+    public List<Article> getArticleRankingByViews() {
+        // 1. 先从 Redis 查
+        Object cacheObj = redisUtil.get(ARTICLE_RANKING_VIEWS_KEY);
+        if (!ObjectUtils.isEmpty(cacheObj)) {
+            return (List<Article>) cacheObj;
+        }
+
+        // 2. 缓存未命中，从数据库查（取前10条，按阅读量降序）
+        List<Article> articles = articleRepository.findTop10ByOrderByViewCountDesc();
+
+        // 3. 写入 Redis，过期时间 5 分钟
+        redisUtil.set(ARTICLE_RANKING_VIEWS_KEY, articles, ARTICLE_RANKING_EXPIRE);
+        return articles;
+    }
+
+    @Override
+    public List<Article> getArticleRankingByLatest() {
+        // 1. 先从 Redis 查
+        Object cacheObj = redisUtil.get(ARTICLE_RANKING_LATEST_KEY);
+        if (!ObjectUtils.isEmpty(cacheObj)) {
+            return (List<Article>) cacheObj;
+        }
+
+        // 2. 缓存未命中，从数据库查（取前10条，按创建时间降序）
+        List<Article> articles = articleRepository.findTop10ByOrderByCreateTimeDesc();
+
+        // 3. 写入 Redis，过期时间 5 分钟
+        redisUtil.set(ARTICLE_RANKING_LATEST_KEY, articles, ARTICLE_RANKING_EXPIRE);
+        return articles;
     }
 }

@@ -1,9 +1,11 @@
 package com.blog.blog.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
 import java.time.LocalDateTime;
 
+@Data
 @Entity
 @Table(name="comment")
 public class Comment {
@@ -25,18 +27,4 @@ public class Comment {
 
     @Column(nullable=false)
     private LocalDateTime createTime;
-
-    //getter和setter
-    public Long getId() {return id;}
-    public void setId(Long id) {this.id = id;}
-    public Long getArticleId() {return articleId;}
-    public void setArticleId(Long articleId) {this.articleId = articleId;}
-    public Long getUserId() {return userId;}
-    public void setUserId(Long userId) {this.userId = userId;}
-    public String getContent() {return content;}
-    public void setContent(String content) {this.content = content;}
-    public Long getParentId() {return parentId;}
-    public void setParentId(Long parentId) {this.parentId = parentId;}
-    public LocalDateTime getCreateTime() {return createTime;}
-    public void setCreateTime(LocalDateTime createTime) {this.createTime = createTime;}
 }

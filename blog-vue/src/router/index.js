@@ -3,6 +3,7 @@ import Home from '../views/Home.vue'
 import ArticleDetail from '../views/ArticleDetail.vue'
 import CreateArticle from '../views/CreateArticle.vue'
 import CategoryManager from '../views/CategoryManager.vue'
+import SiteConfigAdmin from '../views/SiteConfigAdmin.vue'
 
 const routes = [
   {
@@ -24,6 +25,11 @@ const routes = [
     path: '/categories',
     name: 'CategoryManager',
     component: CategoryManager
+  },
+  {
+    path: '/admin/config',
+    name: 'SiteConfigAdmin',
+    component: SiteConfigAdmin
   }
 ]
 
