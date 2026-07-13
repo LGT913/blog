@@ -1,5 +1,22 @@
 const BASE_URL = '/api'
 
+let clearAuthCallback = null
+
+export const setClearAuthCallback = (callback) => {
+  clearAuthCallback = callback
+}
+
+const handleTokenExpired = () => {
+  localStorage.removeItem('blog_token')
+  localStorage.removeItem('blog_user')
+  if (clearAuthCallback) {
+    clearAuthCallback()
+  }
+  if (window.location.pathname !== '/') {
+    window.location.href = '/'
+  }
+}
+
 const request = async (url, options = {}) => {
   try {
     const token = localStorage.getItem('blog_token')
@@ -18,9 +35,21 @@ const request = async (url, options = {}) => {
       }
     })
 
+    if (response.status === 401) {
+      handleTokenExpired()
+      throw new Error('登录已过期，请重新登录')
+    }
+
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`请求失败: ${response.status} ${response.statusText}`)
+      let errorMessage = `请求失败: ${response.status} ${response.statusText}`
+      try {
+        const errorData = JSON.parse(errorText)
+        if (errorData.message) {
+          errorMessage = errorData.message
+        }
+      } catch (e) {}
+      throw new Error(errorMessage)
     }
 
     const text = await response.text()
@@ -33,6 +62,9 @@ const request = async (url, options = {}) => {
     }
 
     if (data.code !== 200) {
+      if (data.code === 401) {
+        handleTokenExpired()
+      }
       throw new Error(data.message || '请求失败')
     }
     return data.data
@@ -94,8 +126,8 @@ export const noticeApi = {
 }
 
 export const siteApi = {
-  getConfig: (configKey) => request(`/site/config?configKey=${encodeURIComponent(configKey)}`),
-  updateConfig: (configKey, configValue) => request(`/site/config/blog-info`, {
+  getConfig: (configKey) => request(`/site/config?configKey=${encodeURIComponent(configKey)}&_t=${Date.now()}`),
+  updateConfig: (configKey, configValue) => request(`/site/config`, {
     method: 'POST',
     body: JSON.stringify({ configKey, configValue })
   })

@@ -2,12 +2,14 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
+import { useSiteStore } from '../store/site'
 import { userApi } from '../api'
 
 const emit = defineEmits(['close', 'switch'])
 
 const router = useRouter()
 const userStore = useUserStore()
+const siteStore = useSiteStore()
 
 const username = ref('')
 const password = ref('')
@@ -26,6 +28,8 @@ const handleSubmit = async () => {
   try {
     const result = await userApi.login({ username: username.value, password: password.value })
     userStore.login(result.user, result.token)
+    // 登录成功后重新加载站点配置（从后端获取管理员配置）
+    await siteStore.loadConfig()
     emit('close')
     router.push('/')
   } catch (e) {

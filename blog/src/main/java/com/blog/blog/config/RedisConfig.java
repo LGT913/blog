@@ -28,7 +28,7 @@ public class RedisConfig {
         // 2. 【关键修复】开启默认类型，让 JSON 包含 @class 字段
         // 这样 Jackson 就知道反序列化时要转成 Article 而不是 LinkedHashMap
         objectMapper.activateDefaultTyping(
-                objectMapper.getPolymorphicTypeValidator(),
+                objectMapper.getPolymorphicTypeValidator(),  //LaissezFaireSubTypeValidator.instance,更宽松
                 ObjectMapper.DefaultTyping.NON_FINAL
         );
 

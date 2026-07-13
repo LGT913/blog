@@ -29,6 +29,7 @@ const isActive = (path) => {
 
 const handleLogout = () => {
   userStore.logout()
+  siteStore.resetConfig()
   router.push('/')
 }
 

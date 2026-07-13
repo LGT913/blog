@@ -20,7 +20,8 @@ public class JwtInterceptor implements HandlerInterceptor {
         if ("GET".equalsIgnoreCase(method)) {
             if (requestURI.matches("/api/article/\\d+") ||
                 requestURI.matches("/api/category/\\d+") ||
-                requestURI.matches("/api/comment/article/\\d+")) {
+                requestURI.matches("/api/comment/article/\\d+") ||
+                requestURI.matches("/api/site/config")) {
                 return true;
             }
         }

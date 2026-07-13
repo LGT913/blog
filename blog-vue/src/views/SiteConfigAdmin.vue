@@ -55,12 +55,16 @@ const handleSubmit = async () => {
   try {
     const configValue = JSON.stringify(form.value)
     await siteApi.updateConfig('blog_info', configValue)
-    success.value = '配置保存成功！页面将自动刷新'
-    setTimeout(() => {
-      siteStore.loadConfig()
-    }, 500)
+    success.value = '配置保存成功！'
+    siteStore.loadConfig()
   } catch (e) {
-    error.value = '保存失败：' + (e.message || '未知错误')
+    if (e.message && e.message.includes('401')) {
+      error.value = '登录已过期，请重新登录后再保存配置'
+      userStore.logout()
+      setTimeout(() => router.push('/'), 2000)
+    } else {
+      error.value = '保存失败：' + (e.message || '未知错误')
+    }
   } finally {
     saving.value = false
   }

@@ -16,6 +16,9 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping("/register")
     public Result<User> register(@RequestBody User user) {
             User registeredUser=userService.register(user.getUsername(),user.getPassword(),user.getNickname());
@@ -25,7 +28,7 @@ public class UserController {
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody User user) {
             User loggedInUser=userService.login(user.getUsername(),user.getPassword());
-            String token = JwtUtil.generateToken(loggedInUser.getId());
+            String token = jwtUtil.generateToken(loggedInUser.getId());
             Map<String, Object> data = new HashMap<>();
             data.put("user", loggedInUser);
             data.put("token", token);

@@ -20,7 +20,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/article/ranking/views",
                         "/api/article/ranking/latest",
                         "/api/category/list",
-                        "/api/notice/list",
-                        "/api/site/config");
+                        "/api/notice/list");
     }
 }

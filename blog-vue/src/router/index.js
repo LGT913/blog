@@ -19,7 +19,8 @@ const routes = [
   {
     path: '/create',
     name: 'CreateArticle',
-    component: CreateArticle
+    component: CreateArticle,
+    meta: { requiresAuth: true }
   },
   {
     path: '/categories',
@@ -29,13 +30,25 @@ const routes = [
   {
     path: '/admin/config',
     name: 'SiteConfigAdmin',
-    component: SiteConfigAdmin
+    component: SiteConfigAdmin,
+    meta: { requiresAuth: true }
   }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth) {
+    const token = localStorage.getItem('blog_token')
+    if (!token) {
+      next('/')
+      return
+    }
+  }
+  next()
 })
 
 export default router

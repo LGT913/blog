@@ -25,13 +25,21 @@ public class ArticleServiceImpl implements ArticleService {
     private DeepSeekService deepSeekService;
 
     // Redis key 常量
-    private static final String ARTICLE_LIST_KEY = "article:list";
-    private static final String ARTICLE_DETAIL_KEY_PREFIX = "article:detail:";
-    private static final String ARTICLE_RANKING_VIEWS_KEY = "article:ranking:views";
-    private static final String ARTICLE_RANKING_LATEST_KEY = "article:ranking:latest";
+    private static final String ARTICLE_LIST_KEY = "article:list"; //所有文章的列表数据
+    private static final String ARTICLE_DETAIL_KEY_PREFIX = "article:detail:";  //单篇文章的详情数据
+    private static final String ARTICLE_RANKING_VIEWS_KEY = "article:ranking:views";  //按阅读量排行的前10篇文章
+    private static final String ARTICLE_RANKING_LATEST_KEY = "article:ranking:latest";  //按创建时间排行的前10篇文章
     private static final long ARTICLE_LIST_EXPIRE = 600L;
     private static final long ARTICLE_DETAIL_EXPIRE = 1800L;
     private static final long ARTICLE_RANKING_EXPIRE = 300L;
+
+    //删除缓存
+    private void clearRelatedCaches(Long articleId) {
+        redisUtil.delete(ARTICLE_LIST_KEY);
+        redisUtil.delete(ARTICLE_DETAIL_KEY_PREFIX + articleId);
+        redisUtil.delete(ARTICLE_RANKING_VIEWS_KEY);
+        redisUtil.delete(ARTICLE_RANKING_LATEST_KEY);
+    }
 
     @Override
     public Article createArticle(String title, String content, Long userId, String categoryId) {
@@ -51,9 +59,7 @@ public class ArticleServiceImpl implements ArticleService {
         article = articleRepository.save(article);
 
         // 创建文章后，删除列表缓存（下次查询时重新加载）
-        redisUtil.delete(ARTICLE_LIST_KEY);
-        redisUtil.delete(ARTICLE_RANKING_VIEWS_KEY);
-        redisUtil.delete(ARTICLE_RANKING_LATEST_KEY);
+        clearRelatedCaches(article.getId());
 
         return article;
     }
@@ -107,10 +113,7 @@ public class ArticleServiceImpl implements ArticleService {
         article = articleRepository.save(article);
 
         // 更新数据 → 只删除缓存，不主动写入缓存
-        redisUtil.delete(ARTICLE_LIST_KEY);
-        redisUtil.delete(ARTICLE_DETAIL_KEY_PREFIX + id);
-        redisUtil.delete(ARTICLE_RANKING_VIEWS_KEY);
-        redisUtil.delete(ARTICLE_RANKING_LATEST_KEY);
+        clearRelatedCaches(article.getId());
 
         return article;
     }
@@ -121,10 +124,7 @@ public class ArticleServiceImpl implements ArticleService {
         articleRepository.delete(article);
 
         // 删除数据 → 清理对应所有缓存
-        redisUtil.delete(ARTICLE_LIST_KEY);
-        redisUtil.delete(ARTICLE_DETAIL_KEY_PREFIX + id);
-        redisUtil.delete(ARTICLE_RANKING_VIEWS_KEY);
-        redisUtil.delete(ARTICLE_RANKING_LATEST_KEY);
+        clearRelatedCaches(article.getId());
     }
 
     @Override
