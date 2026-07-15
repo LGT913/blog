@@ -5,7 +5,9 @@ import com.blog.blog.entity.Article;
 import com.blog.blog.repository.ArticleRepository;
 import com.blog.blog.service.ArticleService;
 import com.blog.blog.service.DeepSeekService;
+import com.blog.blog.vo.PageResult;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
@@ -26,19 +28,28 @@ public class ArticleServiceImpl implements ArticleService {
 
     // Redis key 常量
     private static final String ARTICLE_LIST_KEY = "article:list"; //所有文章的列表数据
+    private static final String ARTICLE_LIST_PAGE_KEY = "article:list:page:"; //分页文章数据的前缀
+    private static final String ARTICLE_TOTAL_COUNT_KEY = "article:total:count";  //全局文章总数缓存 key
     private static final String ARTICLE_DETAIL_KEY_PREFIX = "article:detail:";  //单篇文章的详情数据
     private static final String ARTICLE_RANKING_VIEWS_KEY = "article:ranking:views";  //按阅读量排行的前10篇文章
     private static final String ARTICLE_RANKING_LATEST_KEY = "article:ranking:latest";  //按创建时间排行的前10篇文章
     private static final long ARTICLE_LIST_EXPIRE = 600L;
     private static final long ARTICLE_DETAIL_EXPIRE = 1800L;
     private static final long ARTICLE_RANKING_EXPIRE = 300L;
+    private static final long ARTICLE_TOTAL_EXPIRE = 600L;  //总数缓存过期时间，和列表保持一致
 
     //删除缓存
     private void clearRelatedCaches(Long articleId) {
         redisUtil.delete(ARTICLE_LIST_KEY);
+        // 删除所有分页缓存（使用通配符，需要RedisTemplate支持）
+        // 由于当前RedisUtil不支持模糊删除，这里删除常用分页缓存
+        for (int i = 0; i < 10; i++) {
+            redisUtil.delete(ARTICLE_LIST_PAGE_KEY + i);
+        }
         redisUtil.delete(ARTICLE_DETAIL_KEY_PREFIX + articleId);
         redisUtil.delete(ARTICLE_RANKING_VIEWS_KEY);
         redisUtil.delete(ARTICLE_RANKING_LATEST_KEY);
+        redisUtil.delete(ARTICLE_TOTAL_COUNT_KEY); //清除总数缓存
     }
 
     @Override
@@ -63,6 +74,42 @@ public class ArticleServiceImpl implements ArticleService {
 
         return article;
     }
+
+    @Override
+    public PageResult<Article> getAllArticlesPage(int page, int size) {
+        // 【参数校验】防止前端乱传导致 400
+        if (page < 0) page = 0;
+        if (size <= 0) size = 10;
+
+        String listKey = ARTICLE_LIST_PAGE_KEY + page;
+        String totalKey = ARTICLE_TOTAL_COUNT_KEY;
+
+        // 1. 先从 Redis 查缓存（同时查列表和总数）
+        Object cacheObj = redisUtil.get(listKey);
+        Object totalObj = redisUtil.get(totalKey);
+
+        // 2. 缓存命中：列表和总数都存在，直接返回，不查数据库
+        if (!ObjectUtils.isEmpty(cacheObj) && !ObjectUtils.isEmpty(totalObj)) {
+            @SuppressWarnings("unchecked")
+            List<Article> cachedList = (List<Article>) cacheObj;
+            long total = ((Number) totalObj).longValue();
+
+            // 使用缓存的列表和总数构造 PageResult，完全不查数据库
+            return PageResult.of(cachedList, total, page, size);
+        }
+
+        // 3. 缓存未命中：从数据库查询（排序规则封装在 Repository 方法中）
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Article> pageResult = articleRepository.findAllByOrderByCreateTimeDesc(pageable);
+
+        // 4. 写入 Redis 缓存
+        redisUtil.set(listKey, pageResult.getContent(), ARTICLE_LIST_EXPIRE);
+        redisUtil.set(totalKey, pageResult.getTotalElements(), ARTICLE_TOTAL_EXPIRE);
+
+        // 5. 返回 PageResult（而不是 PageImpl）
+        return PageResult.of(pageResult);
+    }
+
 
     @Override
     public Article getArticle(Long id) {
@@ -105,10 +152,13 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
-    public Article updateArticle(Long id, String title, String content) {
+    public Article updateArticle(Long id, String title, String content, String categoryId) {
         Article article = articleRepository.findById(id).orElseThrow(() -> new RuntimeException("文章不存在"));
         article.setTitle(title);
         article.setContent(content);
+        if (categoryId != null && !categoryId.isEmpty()) {
+            article.setCategoryId(categoryId);
+        }
         article.setUpdateTime(LocalDateTime.now());
         article = articleRepository.save(article);
 

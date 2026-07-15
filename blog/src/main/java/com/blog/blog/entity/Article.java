@@ -31,7 +31,7 @@ public class Article {
     @Column(nullable=false)
     private LocalDateTime updateTime;
 
-    @Column(name="summary",length=500)
+    @Column(name="summary",length=1000)
     private String summary;
 
     @Column(columnDefinition = "int default 0")

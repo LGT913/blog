@@ -60,7 +60,7 @@ const handleSubmit = async () => {
 
   try {
     if (isEdit.value) {
-      await articleApi.update(route.query.id, title.value, content.value)
+      await articleApi.update(route.query.id, title.value, content.value, categoryId.value)
     } else {
       await articleApi.create({
         title: title.value,

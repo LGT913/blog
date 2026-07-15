@@ -1,7 +1,8 @@
 package com.blog.blog.repository;
 
-
 import com.blog.blog.entity.Article;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,4 +18,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 
     // 获取最新发布排行（前10条，按创建时间降序排列）
     List<Article> findTop10ByOrderByCreateTimeDesc();
+
+    // 新增：分页查询，按创建时间倒序
+    Page<Article> findAllByOrderByCreateTimeDesc(Pageable pageable);
 }

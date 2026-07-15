@@ -3,6 +3,7 @@ package com.blog.blog.controller;
 import com.blog.blog.common.Result;
 import com.blog.blog.entity.Article;
 import com.blog.blog.service.ArticleService;
+import com.blog.blog.vo.PageResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,8 +28,10 @@ public class ArticleController {
     }
 
     @GetMapping("/list")
-    public Result<List<Article>> getAllArticles(){
-        List<Article> articles=articleService.getAllArticles();
+    public Result<PageResult<Article>> getAllArticles(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageResult<Article> articles = articleService.getAllArticlesPage(page, size);
         return Result.success(articles);
     }
 
@@ -39,9 +42,10 @@ public class ArticleController {
     }
 
     @PutMapping("/update/{id}")
-    public Result<Article> updateArticle(@PathVariable Long id, @RequestParam String title, @RequestParam String content) {
-        Article article=articleService.updateArticle(id,title,content);
-        return Result.success(article);
+    public Result<Article> updateArticle(@PathVariable Long id, @RequestBody Article article) {
+        Article updatedArticle = articleService.updateArticle(
+            id, article.getTitle(), article.getContent(), article.getCategoryId());
+        return Result.success(updatedArticle);
     }
 
     @DeleteMapping("/delete/{id}")

@@ -93,10 +93,21 @@ export const articleApi = {
     body: JSON.stringify(article)
   }),
   get: (id) => request(`/article/${id}`),
-  list: () => request('/article/list'),
+  list: (page = 0, size = 10) => {
+    // 防御性编程：确保参数是数字
+    const pageNum = Number(page)
+    const sizeNum = Number(size)
+    if (isNaN(pageNum) || isNaN(sizeNum)) {
+      console.error('[API] articleApi.list 非法参数:', { page, size, pageNum, sizeNum })
+      return Promise.reject(new Error('分页参数必须是数字'))
+    }
+    console.log('[API] articleApi.list 请求:', { page: pageNum, size: sizeNum })
+    return request(`/article/list?page=${pageNum}&size=${sizeNum}`)
+  },
   getUserArticles: (userId) => request(`/article/user/${userId}`),
-  update: (id, title, content) => request(`/article/update/${id}?title=${encodeURIComponent(title)}&content=${encodeURIComponent(content)}`, {
-    method: 'PUT'
+  update: (id, title, content, categoryId) => request(`/article/update/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ title, content, categoryId })
   }),
   delete: (id) => request(`/article/delete/${id}`, {
     method: 'DELETE'

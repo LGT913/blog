@@ -21,14 +21,18 @@ const loadData = async () => {
   error.value = ''
 
   try {
-    const [cats, arts] = await Promise.all([
+    const [cats, artsResult] = await Promise.all([
       categoryApi.list(),
-      articleApi.list()
+      articleApi.list(0, 100)  // 加载所有文章用于统计分类数量
     ])
-    categories.value = cats
-    articles.value = arts
+    categories.value = cats || []
+    // 分页接口返回 { content: [...] }，提取文章数组
+    articles.value = artsResult?.content || []
   } catch (e) {
+    console.error('[分类管理] 加载数据失败:', e)
     error.value = e.message || '加载失败'
+    categories.value = []
+    articles.value = []
   } finally {
     loading.value = false
   }

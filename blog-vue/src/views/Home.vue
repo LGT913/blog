@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSiteStore } from '../store/site'
 import { articleApi, categoryApi, noticeApi } from '../api'
@@ -19,6 +19,12 @@ const searchQuery = ref('')
 
 const loadingNotices = ref(true)
 const loadingRankings = ref(true)
+
+// 分页相关变量
+const currentPage = ref(0)
+const pageSize = ref(10)
+const totalElements = ref(0)
+const totalPages = ref(0)
 
 const filteredArticles = computed(() => {
   let result = articles.value || []
@@ -43,17 +49,104 @@ const categoryCount = computed(() => {
   return counts
 })
 
-const loadArticles = async () => {
+const loadArticles = async (page = 0, size = 10) => {
+  console.log('[分页] loadArticles 被调用，page:', page, '类型:', typeof page, 'size:', size)
+
+  // 防御性编程：确保参数是数字
+  const pageNum = Number(page)
+  const sizeNum = Number(size)
+  if (isNaN(pageNum) || isNaN(sizeNum)) {
+    console.error('[分页] 非法参数，page:', page, 'size:', size)
+    error.value = '分页参数错误'
+    loading.value = false
+    return
+  }
+
   loading.value = true
   error.value = ''
   try {
-    const result = await articleApi.list()
-    articles.value = result || []
+    console.log('[分页] 请求接口，page:', pageNum, 'size:', sizeNum)
+    const result = await articleApi.list(pageNum, sizeNum)
+    console.log('[分页] 接口返回:', result)
+    if (result) {
+      articles.value = result.content || []
+      totalElements.value = result.totalElements || 0
+      totalPages.value = result.totalPages || 0
+      currentPage.value = result.number ?? 0
+      pageSize.value = result.size || 10
+    } else {
+      articles.value = []
+      totalElements.value = 0
+      totalPages.value = 0
+    }
   } catch (e) {
+    console.error('[分页] 接口错误:', e)
     error.value = e.message || '获取文章失败'
   } finally {
     loading.value = false
   }
+}
+
+// 切换分类时重置分页为第1页
+watch(activeCategory, () => {
+  currentPage.value = 0
+  loadArticles(0, pageSize.value)
+})
+
+const handlePageChange = (page) => {
+  console.log('[分页] handlePageChange 被调用，原始参数:', page, '类型:', typeof page)
+
+  // 防御性编程：确保 page 是数字
+  const pageNum = Number(page)
+  if (isNaN(pageNum) || pageNum < 0) {
+    console.error('[分页] 非法页码:', page, '使用默认值 0')
+    loadArticles(0, pageSize.value)
+    return
+  }
+
+  console.log('[分页] 转换后的页码:', pageNum)
+  loadArticles(pageNum, pageSize.value)
+}
+
+const handlePageSizeChange = (size) => {
+  console.log('[分页] 切换每页条数:', size)
+  pageSize.value = Number(size) || 10
+  loadArticles(0, pageSize.value)
+}
+
+const getVisiblePages = () => {
+  const pages = []
+  const total = totalPages.value
+  const current = currentPage.value
+
+  if (total <= 7) {
+    for (let i = 0; i < total; i++) {
+      pages.push(i)
+    }
+  } else {
+    if (current <= 2) {
+      for (let i = 0; i <= 4; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+      pages.push(total - 1)
+    } else if (current >= total - 3) {
+      pages.push(0)
+      pages.push('...')
+      for (let i = total - 5; i < total; i++) {
+        pages.push(i)
+      }
+    } else {
+      pages.push(0)
+      pages.push('...')
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+      pages.push(total - 1)
+    }
+  }
+  return pages
 }
 
 const loadCategories = async () => {
@@ -241,6 +334,60 @@ onMounted(() => {
                 <span class="read-more">阅读全文 →</span>
               </div>
             </article>
+
+            <!-- 分页组件 -->
+            <div v-if="totalPages > 1" class="pagination">
+              <div class="pagination-info">
+                共 {{ totalElements }} 篇文章
+              </div>
+              <div class="pagination-controls">
+                <button
+                  class="pagination-btn"
+                  :class="{ disabled: currentPage === 0 }"
+                  @click="() => handlePageChange(currentPage - 1)"
+                  :disabled="currentPage === 0"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </button>
+                <div class="pagination-pages">
+                  <template v-for="(page, idx) in getVisiblePages()" :key="`${page}-${idx}`">
+                    <span
+                      v-if="page === '...'"
+                      class="pagination-ellipsis"
+                    >...</span>
+                    <button
+                      v-else
+                      class="pagination-page"
+                      :class="{ active: page === currentPage }"
+                      @click="() => handlePageChange(Number(page))"
+                    >
+                      {{ page + 1 }}
+                    </button>
+                  </template>
+                </div>
+                <button
+                  class="pagination-btn"
+                  :class="{ disabled: currentPage >= totalPages - 1 }"
+                  @click="() => handlePageChange(currentPage + 1)"
+                  :disabled="currentPage >= totalPages - 1"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+                <select
+                  class="pagination-size"
+                  :value="pageSize"
+                  @change="handlePageSizeChange(Number($event.target.value))"
+                >
+                  <option :value="5">5条/页</option>
+                  <option :value="10">10条/页</option>
+                  <option :value="20">20条/页</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -897,5 +1044,107 @@ onMounted(() => {
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+/* 分页样式 */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32px 0;
+  border-top: 1px solid var(--color-border-light);
+  margin-top: 16px;
+}
+
+.pagination-info {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pagination-btn:hover:not(.disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.pagination-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-page {
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  padding: 0 8px;
+}
+
+.pagination-page:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.pagination-page.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.pagination-ellipsis {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  padding: 0 4px;
+}
+
+.pagination-size {
+  padding: 8px 12px;
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.pagination-size:focus {
+  border-color: var(--color-primary);
 }
 </style>
