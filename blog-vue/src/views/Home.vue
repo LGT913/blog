@@ -26,23 +26,13 @@ const pageSize = ref(10)
 const totalElements = ref(0)
 const totalPages = ref(0)
 
-const filteredArticles = computed(() => {
-  let result = articles.value || []
-  if (activeCategory.value !== 'all') {
-    result = result.filter(a => String(a.categoryId) === String(activeCategory.value))
-  }
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase()
-    result = result.filter(a =>
-      a.title.toLowerCase().includes(q) ||
-      (a.content && a.content.toLowerCase().includes(q))
-    )
-  }
-  return result
-})
+const filteredArticles = computed(() => articles.value || [])
+
+let searchTimer = null
 
 const categoryCount = computed(() => {
-  const counts = { all: articles.value.length }
+  // 分页模式下 articles 只含当前页数据，all 用 totalElements 保证准确
+  const counts = { all: totalElements.value }
   categories.value.forEach(cat => {
     counts[cat.id] = articles.value.filter(a => String(a.categoryId) === String(cat.id)).length
   })
@@ -65,8 +55,9 @@ const loadArticles = async (page = 0, size = 10) => {
   loading.value = true
   error.value = ''
   try {
-    console.log('[分页] 请求接口，page:', pageNum, 'size:', sizeNum)
-    const result = await articleApi.list(pageNum, sizeNum)
+    const catId = activeCategory.value === 'all' ? null : activeCategory.value
+    const kw = searchQuery.value && searchQuery.value.trim() ? searchQuery.value.trim() : null
+    const result = await articleApi.list(pageNum, sizeNum, catId, kw)
     console.log('[分页] 接口返回:', result)
     if (result) {
       articles.value = result.content || []
@@ -91,6 +82,15 @@ const loadArticles = async (page = 0, size = 10) => {
 watch(activeCategory, () => {
   currentPage.value = 0
   loadArticles(0, pageSize.value)
+})
+
+// 搜索关键词变化时，防抖300ms后重置分页并重新请求
+watch(searchQuery, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 0
+    loadArticles(0, pageSize.value)
+  }, 300)
 })
 
 const handlePageChange = (page) => {
@@ -187,7 +187,11 @@ const loadRankings = async () => {
 const handleDelete = async (id) => {
   try {
     await articleApi.delete(id)
-    articles.value = articles.value.filter(a => a.id !== id)
+    if (articles.value.length === 1 && currentPage.value > 0) {
+      loadArticles(currentPage.value - 1, pageSize.value)
+    } else {
+      loadArticles(currentPage.value, pageSize.value)
+    }
   } catch (e) {
     alert(e.message || '删除失败')
   }
@@ -236,7 +240,7 @@ onMounted(() => {
           </template>
           <div class="hero-stats">
             <div class="stat">
-              <div class="stat-number">{{ articles.length }}</div>
+              <div class="stat-number">{{ totalElements }}</div>
               <div class="stat-label">篇文章</div>
             </div>
             <div class="stat-divider"></div>

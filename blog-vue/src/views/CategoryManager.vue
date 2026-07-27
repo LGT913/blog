@@ -16,6 +16,17 @@ const editingId = ref(null)
 const editingName = ref('')
 const editingDescription = ref('')
 
+// 文章列表视图相关
+const currentView = ref('categories') // 'categories' | 'articles'
+const selectedCategory = ref(null)
+const categoryArticles = ref([])
+const articlesLoading = ref(false)
+const articlesError = ref('')
+const currentPage = ref(0)
+const pageSize = ref(10)
+const totalElements = ref(0)
+const totalPages = ref(0)
+
 const loadData = async () => {
   loading.value = true
   error.value = ''
@@ -105,6 +116,88 @@ const handleDelete = async (id) => {
   }
 }
 
+// ===== 文章列表视图方法 =====
+
+const viewArticles = (cat) => {
+  selectedCategory.value = cat
+  currentView.value = 'articles'
+  currentPage.value = 0
+  loadCategoryArticles(0, pageSize.value)
+}
+
+const backToCategories = () => {
+  currentView.value = 'categories'
+  selectedCategory.value = null
+  categoryArticles.value = []
+  articlesError.value = ''
+}
+
+const loadCategoryArticles = async (page = 0, size = 10) => {
+  articlesLoading.value = true
+  articlesError.value = ''
+  try {
+    const result = await articleApi.list(page, size, String(selectedCategory.value.id))
+    if (result) {
+      categoryArticles.value = result.content || []
+      totalElements.value = result.totalElements || 0
+      totalPages.value = result.totalPages || 0
+      currentPage.value = result.number ?? 0
+      pageSize.value = result.size || 10
+    }
+  } catch (e) {
+    articlesError.value = e.message || '获取文章失败'
+    categoryArticles.value = []
+  } finally {
+    articlesLoading.value = false
+  }
+}
+
+const handlePageChange = (page) => {
+  const pageNum = Number(page)
+  if (isNaN(pageNum) || pageNum < 0) return
+  loadCategoryArticles(pageNum, pageSize.value)
+}
+
+const getVisiblePages = () => {
+  const pages = []
+  const total = totalPages.value
+  const current = currentPage.value
+  if (total <= 7) {
+    for (let i = 0; i < total; i++) pages.push(i)
+  } else {
+    if (current <= 2) {
+      for (let i = 0; i <= 4; i++) pages.push(i)
+      pages.push('...')
+      pages.push(total - 1)
+    } else if (current >= total - 3) {
+      pages.push(0)
+      pages.push('...')
+      for (let i = total - 5; i < total; i++) pages.push(i)
+    } else {
+      pages.push(0)
+      pages.push('...')
+      for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+      pages.push('...')
+      pages.push(total - 1)
+    }
+  }
+  return pages
+}
+
+const formatTime = (time) => {
+  if (!time) return ''
+  const date = new Date(time)
+  if (isNaN(date.getTime())) return time
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}年${month}月${day}日`
+}
+
+const goToArticle = (id) => {
+  router.push(`/article/${id}`)
+}
+
 onMounted(() => {
   loadData()
 })
@@ -114,6 +207,8 @@ onMounted(() => {
   <div class="page">
     <main class="main">
       <div class="container">
+        <!-- 分类管理视图 -->
+        <template v-if="currentView === 'categories'">
         <!-- 页面头部 -->
         <div class="page-header">
           <div>
@@ -266,6 +361,13 @@ onMounted(() => {
                 </div>
 
                 <div class="cat-actions">
+                  <button class="action-btn view" @click="viewArticles(cat)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    查看
+                  </button>
                   <button class="action-btn edit" @click="startEdit(cat)">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M12 20h9"></path>
@@ -285,6 +387,112 @@ onMounted(() => {
             </div>
           </div>
         </div>
+        </template>
+
+        <!-- 文章列表视图 -->
+        <template v-else>
+          <div class="page-header">
+            <div>
+              <button class="back-btn" @click="backToCategories">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                返回分类列表
+              </button>
+              <h1 class="page-title">{{ selectedCategory?.name || '分类文章' }}</h1>
+              <p v-if="selectedCategory?.description" class="page-desc">{{ selectedCategory.description }}</p>
+            </div>
+            <div class="stats-card">
+              <div class="stat">
+                <div class="stat-number">{{ totalElements }}</div>
+                <div class="stat-label">篇文章</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="articlesError" class="error-banner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>{{ articlesError }}</span>
+          </div>
+
+          <div class="list-section">
+            <div v-if="articlesLoading" class="loading-state">
+              <div class="spinner"></div>
+              <p>正在加载文章...</p>
+            </div>
+
+            <div v-else-if="categoryArticles.length === 0" class="empty-state">
+              <div class="empty-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+              </div>
+              <p class="empty-text">该分类下暂无文章</p>
+            </div>
+
+            <div v-else class="article-list">
+              <article
+                v-for="article in categoryArticles"
+                :key="article.id"
+                class="article-card"
+                @click="goToArticle(article.id)"
+              >
+                <div class="card-header">
+                  <span class="date">{{ formatTime(article.createTime) }}</span>
+                </div>
+                <h3 class="article-title">{{ article.title }}</h3>
+                <div v-if="article.summary" class="ai-summary">
+                  <div class="ai-summary-bar"></div>
+                  <span class="ai-summary-text">{{ article.summary }}</span>
+                </div>
+              </article>
+
+              <!-- 分页组件 -->
+              <div v-if="totalPages > 1" class="pagination">
+                <div class="pagination-info">共 {{ totalElements }} 篇文章</div>
+                <div class="pagination-controls">
+                  <button
+                    class="pagination-btn"
+                    :class="{ disabled: currentPage === 0 }"
+                    @click="handlePageChange(currentPage - 1)"
+                    :disabled="currentPage === 0"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                  </button>
+                  <div class="pagination-pages">
+                    <template v-for="(page, idx) in getVisiblePages()" :key="`${page}-${idx}`">
+                      <span v-if="page === '...'" class="pagination-ellipsis">...</span>
+                      <button
+                        v-else
+                        class="pagination-page"
+                        :class="{ active: page === currentPage }"
+                        @click="handlePageChange(Number(page))"
+                      >{{ page + 1 }}</button>
+                    </template>
+                  </div>
+                  <button
+                    class="pagination-btn"
+                    :class="{ disabled: currentPage >= totalPages - 1 }"
+                    @click="handlePageChange(currentPage + 1)"
+                    :disabled="currentPage >= totalPages - 1"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </main>
   </div>
@@ -643,6 +851,16 @@ onMounted(() => {
   background: var(--color-primary-lighter);
 }
 
+.action-btn.view {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
+}
+
+.action-btn.view:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
+}
+
 .action-btn.delete {
   color: var(--color-error);
   background: var(--color-error-light);
@@ -707,6 +925,158 @@ onMounted(() => {
 .icon-btn.cancel:hover {
   background: var(--color-border);
   color: var(--color-text-primary);
+}
+
+/* 文章列表 */
+.article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.article-card {
+  padding: 20px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.article-card:hover {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.date {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.article-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.article-card:hover .article-title {
+  color: var(--color-primary);
+}
+
+.ai-summary {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border-radius: 6px;
+}
+
+.ai-summary-bar {
+  width: 3px;
+  flex-shrink: 0;
+  background: #3b82f6;
+  border-radius: 2px;
+}
+
+.ai-summary-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+/* 分页 */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0 8px;
+  border-top: 1px solid var(--color-border-light);
+  margin-top: 12px;
+}
+
+.pagination-info {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pagination-btn:hover:not(.disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.pagination-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-page {
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  padding: 0 8px;
+}
+
+.pagination-page:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.pagination-page.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.pagination-ellipsis {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  padding: 0 4px;
 }
 
 @keyframes fadeInUp {
