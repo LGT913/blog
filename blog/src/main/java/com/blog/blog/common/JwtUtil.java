@@ -26,10 +26,12 @@ public class JwtUtil {
         System.out.println("✅ JWT Key 初始化成功");
     }
 
-    public String generateToken(Long userId) {
-        return Jwts.builder().subject(userId.toString())
+    public String generateToken(Long userId, String role) {
+        return Jwts.builder()
+                .subject(userId.toString())
+                .claim("role", role)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis()+expirationTime))
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(key)
                 .compact();
     }
@@ -52,4 +54,13 @@ public class JwtUtil {
             return false;
         }
      }
+
+    public String getRoleFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.get("role", String.class);
+    }
 }
