@@ -22,6 +22,7 @@ public class Result<T> {
         return new Result<>(500, message, null);
     }
 
+
     // getter 方法（必须有，否则JSON序列化失败）
     public Integer getCode() { return code; }
     public String getMessage() { return message; }

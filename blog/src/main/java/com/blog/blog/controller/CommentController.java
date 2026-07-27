@@ -6,6 +6,8 @@ import com.blog.blog.entity.Comment;
 import com.blog.blog.service.CommentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import com.blog.blog.common.UserPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
@@ -16,8 +18,12 @@ public class CommentController {
     private CommentService commentService;
 
     @PostMapping("/create")
-    public Result<Comment> createComment(@RequestParam Long articleId, @RequestParam Long userId,@RequestParam String content, @RequestParam(required = false) Long parentId) {
-        Comment comment =commentService.createComment(articleId, userId, content, parentId);
+    public Result<Comment> createComment(@RequestParam Long articleId,
+                                         @AuthenticationPrincipal UserPrincipal principal,
+                                         @RequestParam String content,
+                                         @RequestParam(required = false) Long parentId) {
+        Long userId = principal.getUserId();
+        Comment comment = commentService.createComment(articleId, userId, content, parentId);
         return Result.success(comment);
     }
 
