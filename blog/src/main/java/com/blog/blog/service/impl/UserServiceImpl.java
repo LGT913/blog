@@ -25,6 +25,7 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("用户名已存在");
         }
         User user = new User();
+        user.setRole(User.Role.USER);   // 新注册都是普通用户
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
         user.setNickname(nickname);

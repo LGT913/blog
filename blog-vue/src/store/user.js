@@ -1,9 +1,13 @@
-import { reactive } from 'vue'
+import { reactive, computed } from 'vue'
 
 const state = reactive({
   user: null,
   token: null,
   isLoggedIn: false
+})
+
+const isAdmin = computed(() => {
+  return state.user && state.user.role === 'ADMIN'
 })
 
 // 退出登录时的回调函数列表（用于通知其他模块）
@@ -76,6 +80,7 @@ const init = () => {
 export function useUserStore() {
   return {
     state,
+    isAdmin,
     login,
     logout,
     onLogout,

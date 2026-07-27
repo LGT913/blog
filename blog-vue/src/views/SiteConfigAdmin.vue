@@ -29,6 +29,11 @@ onMounted(() => {
     router.push('/')
     return
   }
+  if (!userStore.isAdmin.value) {
+    error.value = '您没有权限访问此页面，仅管理员可操作'
+    setTimeout(() => router.push('/'), 2000)
+    return
+  }
   loadForm()
 })
 

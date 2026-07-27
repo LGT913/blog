@@ -15,7 +15,7 @@ const navItems = computed(() => {
     { path: '/', label: '首页' },
     { path: '/categories', label: '分类管理' }
   ]
-  if (userStore.state.isLoggedIn) {
+  if (userStore.isAdmin.value) {
     items.push({ path: '/admin/config', label: '网站配置' })
   }
   return items
@@ -79,7 +79,10 @@ const handleOpenRegister = () => {
               {{ userStore.state.user.nickname.charAt(0).toUpperCase() }}
             </div>
             <div class="user-detail">
-              <div class="user-name">{{ userStore.state.user.nickname }}</div>
+              <div class="user-name">
+                {{ userStore.state.user.nickname }}
+                <span v-if="userStore.isAdmin.value" class="role-badge">管理员</span>
+              </div>
               <button class="logout-btn" @click="handleLogout">退出登录</button>
             </div>
           </div>
@@ -245,6 +248,18 @@ const handleOpenRegister = () => {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
+}
+
+.role-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  vertical-align: middle;
 }
 
 .logout-btn {

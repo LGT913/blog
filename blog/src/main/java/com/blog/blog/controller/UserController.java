@@ -26,12 +26,12 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@RequestBody User user) {
-            User loggedInUser=userService.login(user.getUsername(),user.getPassword());
-            String token = jwtUtil.generateToken(loggedInUser.getId());
-            Map<String, Object> data = new HashMap<>();
-            data.put("user", loggedInUser);
-            data.put("token", token);
-            return Result.success(data);
+    public Result<Map<String, Object>> login(@RequestBody User loginRequest) {
+        User loggedInUser = userService.login(loginRequest.getUsername(), loginRequest.getPassword());
+        String token = jwtUtil.generateToken(loggedInUser.getId(), loggedInUser.getRole().name());
+        Map<String, Object> data = new HashMap<>();
+        data.put("user", loggedInUser);
+        data.put("token", token);
+        return Result.success(data);
     }
 }

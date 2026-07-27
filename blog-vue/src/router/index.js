@@ -31,7 +31,7 @@ const routes = [
     path: '/admin/config',
     name: 'SiteConfigAdmin',
     component: SiteConfigAdmin,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 
@@ -41,13 +41,33 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('blog_token')
+
   if (to.meta.requiresAuth) {
-    const token = localStorage.getItem('blog_token')
     if (!token) {
       next('/')
       return
     }
   }
+
+  if (to.meta.requiresAdmin) {
+    const userStr = localStorage.getItem('blog_user')
+    if (!userStr) {
+      next('/')
+      return
+    }
+    try {
+      const user = JSON.parse(userStr)
+      if (user.role !== 'ADMIN') {
+        next('/')
+        return
+      }
+    } catch (e) {
+      next('/')
+      return
+    }
+  }
+
   next()
 })
 

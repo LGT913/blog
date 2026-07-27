@@ -4,6 +4,7 @@ import com.blog.blog.common.Result;
 import com.blog.blog.entity.SiteConfig;
 import com.blog.blog.service.SiteConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,6 +20,7 @@ public class SiteConfigController {
         return Result.success(siteConfig);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/config")
     public Result<SiteConfig> saveConfig(@RequestBody SiteConfig siteConfig) {
         SiteConfig savedConfig = siteConfigService.saveConfig(
@@ -26,6 +28,7 @@ public class SiteConfigController {
         return Result.success(savedConfig);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/config/{id}")
     public Result<String> deleteConfig(@PathVariable Long id) {
         siteConfigService.deleteConfig(id);

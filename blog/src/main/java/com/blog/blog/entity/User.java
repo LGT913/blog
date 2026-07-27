@@ -16,7 +16,6 @@ public class User {
     @Column(nullable=false,unique = true)
     private String username;
 
-
     @Column(nullable=false)
     private String password;
 
@@ -25,4 +24,13 @@ public class User {
 
     @Column(nullable=false)
     private LocalDateTime createTime;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role = Role.USER;
+
+    public enum Role {
+        USER,
+        ADMIN
+    }
 }
