@@ -20,5 +20,7 @@ public interface ArticleService {
     List<Article> getArticleRankingByLatest();
 
     // 分页查询文章列表（返回 PageResult，避免序列化 PageImpl）
-    PageResult<Article> getAllArticlesPage(int page, int size);
+    // categoryId 为空时查询全部，不为空时按分类筛选
+    // keyword 为空时不搜索，不为空时按标题/内容模糊搜索
+    PageResult<Article> getAllArticlesPage(int page, int size, String categoryId, String keyword);
 }
