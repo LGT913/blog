@@ -1,10 +1,11 @@
 package com.blog.blog.controller;
 
 
-import com.blog.blog.common.Result;
+import com.blog.blog.common.result.Result;
 import com.blog.blog.entity.Category;
 import com.blog.blog.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +16,7 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/create")
     public Result<Category> create(@RequestBody Category category) {
         Category createCategory=categoryService.createCategory(category.getName(), category.getDescription());
@@ -33,12 +35,14 @@ public class CategoryController {
         return Result.success(categoryList);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/update/{id}")
     public Result<Category> updateCategory(@PathVariable Long id, @RequestBody Category category) {
         Category updateCategory=categoryService.updateCategory(id, category.getName(), category.getDescription());
         return Result.success(updateCategory);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/{id}")
     public Result<String> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);

@@ -1,6 +1,6 @@
 package com.blog.blog.config;
 
-import com.blog.blog.common.Result;
+import com.blog.blog.common.result.Result;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

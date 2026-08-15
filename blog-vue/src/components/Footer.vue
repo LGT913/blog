@@ -36,25 +36,25 @@ const siteStore = useSiteStore()
 .footer {
   margin-top: auto;
   border-top: 1px solid var(--color-border-light);
-  background: var(--color-bg);
+  background: var(--color-bg-warm);
 }
 
 .footer-inner {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 32px var(--space-6) 24px;
+  padding: 32px var(--space-6) 20px;
 }
 
 .footer-top {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .footer-brand {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 8px;
 }
 
@@ -64,13 +64,15 @@ const siteStore = useSiteStore()
 }
 
 .footer-site-name {
+  font-family: var(--font-serif);
   font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
+  font-weight: 700;
   color: var(--color-text-primary);
+  letter-spacing: 1px;
 }
 
 .footer-desc {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   max-width: 400px;
   margin: 0 auto;
@@ -83,13 +85,14 @@ const siteStore = useSiteStore()
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid var(--color-border-light);
 }
 
 .footer-copyright {
-  font-size: var(--font-size-xs);
+  font-size: 11px;
   color: var(--color-text-muted);
+  letter-spacing: 0.5px;
 }
 
 .footer-links {
@@ -99,7 +102,7 @@ const siteStore = useSiteStore()
 }
 
 .footer-link {
-  font-size: var(--font-size-xs);
+  font-size: 11px;
   color: var(--color-text-muted);
 }
 </style>

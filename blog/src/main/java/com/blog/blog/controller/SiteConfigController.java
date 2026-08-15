@@ -1,6 +1,6 @@
 package com.blog.blog.controller;
 
-import com.blog.blog.common.Result;
+import com.blog.blog.common.result.Result;
 import com.blog.blog.entity.SiteConfig;
 import com.blog.blog.service.SiteConfigService;
 import org.springframework.beans.factory.annotation.Autowired;

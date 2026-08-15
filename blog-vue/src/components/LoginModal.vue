@@ -1,13 +1,11 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
 import { useSiteStore } from '../store/site'
 import { userApi } from '../api'
 
 const emit = defineEmits(['close', 'switch'])
 
-const router = useRouter()
 const userStore = useUserStore()
 const siteStore = useSiteStore()
 
@@ -17,8 +15,12 @@ const error = ref('')
 const loading = ref(false)
 
 const handleSubmit = async () => {
-  if (!username.value || !password.value) {
-    error.value = '请填写用户名和密码'
+  if (!username.value.trim()) {
+    error.value = '请输入用户名'
+    return
+  }
+  if (!password.value) {
+    error.value = '请输入密码'
     return
   }
 
@@ -26,12 +28,10 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
-    const result = await userApi.login({ username: username.value, password: password.value })
+    const result = await userApi.login({ username: username.value.trim(), password: password.value })
     userStore.login(result.user, result.token)
-    // 登录成功后重新加载站点配置（从后端获取管理员配置）
-    await siteStore.loadConfig()
+    await siteStore.loadConfig({ forceRefresh: true })
     emit('close')
-    router.push('/')
   } catch (e) {
     error.value = e.message || '登录失败'
   } finally {
@@ -40,10 +40,11 @@ const handleSubmit = async () => {
 }
 
 const handleClose = () => {
+  error.value = ''
   emit('close')
 }
-
 const handleSwitch = () => {
+  error.value = ''
   emit('switch')
 }
 </script>
@@ -108,11 +109,7 @@ const handleSwitch = () => {
           </div>
         </div>
 
-        <button
-          type="submit"
-          :disabled="loading"
-          class="submit-btn"
-        >
+        <button type="submit" :disabled="loading" class="submit-btn">
           <span v-if="loading" class="spinner"></span>
           <span>{{ loading ? '登录中...' : '登录' }}</span>
         </button>
@@ -134,7 +131,7 @@ const handleSwitch = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   animation: fadeIn var(--transition-normal) ease-out;
 }
@@ -308,14 +305,8 @@ const handleSwitch = () => {
 }
 
 @keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 @keyframes spin {

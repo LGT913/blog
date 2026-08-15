@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-@Repository
 public interface SiteConfigRepository extends JpaRepository<SiteConfig, Long> {
 
     // 根据配置键查询单条数据

@@ -1,6 +1,6 @@
 package com.blog.blog.service.impl;
 
-import com.blog.blog.common.RedisUtil;
+import com.blog.blog.common.util.RedisUtil;
 import com.blog.blog.entity.SiteConfig;
 import com.blog.blog.repository.SiteConfigRepository;
 import com.blog.blog.service.SiteConfigService;
@@ -19,13 +19,13 @@ public class SiteConfigServiceImpl implements SiteConfigService {
     @Autowired
     private RedisUtil redisUtil;
 
-    // Redis key 常量
-    private static final String SITE_CONFIG_KEY = "site:config";
+    // Redis key 常量（加 blog: 前缀，按 configKey 区分缓存）
+    private static final String SITE_CONFIG_KEY = "blog:site:config:";
     private static final long SITE_CONFIG_EXPIRE = 600L;
 
     @Override
     public SiteConfig getByConfigKey(String configKey) {
-        String key = SITE_CONFIG_KEY;
+        String key = SITE_CONFIG_KEY + configKey;
 
         // 1. 先从 Redis 查
         Object cacheObj = redisUtil.get(key);
@@ -60,7 +60,7 @@ public class SiteConfigServiceImpl implements SiteConfigService {
         siteConfig = siteConfigRepository.save(siteConfig);
 
         // 增删改数据 → 只删除缓存，不主动写入缓存
-        redisUtil.delete(SITE_CONFIG_KEY);
+        redisUtil.delete(SITE_CONFIG_KEY + configKey);
 
         return siteConfig;
     }
@@ -70,6 +70,6 @@ public class SiteConfigServiceImpl implements SiteConfigService {
         siteConfigRepository.deleteById(id);
 
         // 删除数据 → 清理对应缓存
-        redisUtil.delete(SITE_CONFIG_KEY);
+        redisUtil.deleteByPattern(SITE_CONFIG_KEY + "*");
     }
 }

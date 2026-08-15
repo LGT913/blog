@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useSiteStore } from '../store/site'
 import { siteApi } from '../api'
 import { useUserStore } from '../store/user'
+import { SiteConfigKey } from '../utils/constants'
 
 const router = useRouter()
 const siteStore = useSiteStore()
@@ -59,7 +60,7 @@ const handleSubmit = async () => {
   success.value = ''
   try {
     const configValue = JSON.stringify(form.value)
-    await siteApi.updateConfig('blog_info', configValue)
+    await siteApi.createConfig({ configKey: SiteConfigKey.BLOG_INFO, configValue, description: '' })
     success.value = '配置保存成功！'
     siteStore.loadConfig()
   } catch (e) {
@@ -298,7 +299,7 @@ const handleSubmit = async () => {
   font-size: var(--font-size-base);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg-card);
+  background: var(--color-bg-input);
   outline: none;
   transition: border-color var(--transition-fast);
 }

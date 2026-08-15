@@ -3,8 +3,10 @@ package com.blog.blog.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -17,8 +19,18 @@ public class DeepSeekService {
     @Value("${deepseek.api.url}")
     private String apiUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @PostConstruct
+    public void init() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        // 连接超时:建立 TCP 握手的最大等待时间(防止目标服务器挂了)
+        factory.setConnectTimeout(5000);     // 5 秒
+        // 读取超时:发送请求后等待响应的最大时间(AI API 通常 2-30 秒)
+        factory.setReadTimeout(30000);       // 30 秒
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     public String generateSummary(String content) {
         if (content == null || content.trim().isEmpty()) {

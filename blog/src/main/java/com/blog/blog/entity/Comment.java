@@ -27,4 +27,8 @@ public class Comment {
 
     @Column(nullable=false)
     private LocalDateTime createTime;
+
+    /** 评论者昵称（非数据库字段，查询时批量填充，用于前端展示） */
+    @Transient
+    private String username;
 }

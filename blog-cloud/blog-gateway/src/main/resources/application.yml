@@ -1,0 +1,56 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: blog-gateway
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration
+  cloud:
+    nacos:
+      # Nacos 地址统一顶层，discovery/config共用
+      server-addr: ${NACOS_ADDR:nacos:8848}
+      discovery:
+        ephemeral: true
+    gateway:
+      server:
+        webflux:
+          # 服务自动发现
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          # 业务路由
+          routes:
+            - id: user-service
+              uri: lb://blog-user-service
+              predicates:
+                - Path=/api/user/**
+            - id: article-service
+              uri: lb://blog-article-service
+              predicates:
+                - Path=/api/article/**
+            - id: category-service
+              uri: lb://blog-article-service
+              predicates:
+                - Path=/api/category/**
+            - id: comment-service
+              uri: lb://blog-article-service
+              predicates:
+                - Path=/api/comment/**
+          # 全局跨域 移入新标准层级，消除警告
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: ${CORS_ALLOW:http://localhost:5173}
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: true

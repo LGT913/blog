@@ -104,3 +104,6 @@ jacoco.exec
 # IDE run configurations
 .run/
 *.launch
+
+*.env
+application-local.properties

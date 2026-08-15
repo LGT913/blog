@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
 public interface NoticeRepository extends JpaRepository<Notice, Long> {
 
     // 查询所有公告，按创建时间倒序排列

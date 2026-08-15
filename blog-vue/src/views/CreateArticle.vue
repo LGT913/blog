@@ -31,9 +31,9 @@ const loadArticle = async () => {
   initialLoading.value = true
   try {
     const article = await articleApi.get(route.query.id)
-    title.value = article.title
-    content.value = article.content
-    categoryId.value = String(article.categoryId)
+    title.value = article.title || ''
+    content.value = article.content || ''
+    categoryId.value = String(article.categoryId || '')
   } catch (e) {
     error.value = e.message || '获取文章失败'
   } finally {
@@ -60,16 +60,20 @@ const handleSubmit = async () => {
 
   try {
     if (isEdit.value) {
-      await articleApi.update(route.query.id, title.value, content.value, categoryId.value)
-    } else {
-      await articleApi.create({
-        title: title.value,
+      await articleApi.update(route.query.id, {
+        title: title.value.trim(),
         content: content.value,
-        userId: userStore.state.user.id,
         categoryId: categoryId.value
       })
+      router.push(`/article/${route.query.id}`)
+    } else {
+      const result = await articleApi.create({
+        title: title.value.trim(),
+        content: content.value,
+        categoryId: categoryId.value
+      })
+      router.push(`/article/${result.id}`)
     }
-    router.push('/')
   } catch (e) {
     error.value = e.message || (isEdit.value ? '更新失败' : '发布失败')
   } finally {
@@ -80,7 +84,7 @@ const handleSubmit = async () => {
 onMounted(async () => {
   await loadCategories()
   if (isEdit.value) {
-    loadArticle()
+    await loadArticle()
   } else {
     initialLoading.value = false
     if (categories.value.length > 0) {
@@ -94,7 +98,6 @@ onMounted(async () => {
   <div class="page">
     <main class="main">
       <div class="editor-container">
-        <!-- 页面头部 -->
         <div class="page-header">
           <div class="header-left">
             <button class="back-btn" @click="router.push('/')">
@@ -111,19 +114,20 @@ onMounted(async () => {
               </p>
             </div>
           </div>
-
           <div class="word-count">
             <span class="count-number">{{ wordCount }}</span>
             <span class="count-label">字</span>
           </div>
         </div>
 
+        <!-- Loading -->
         <div v-if="initialLoading" class="loading-state">
           <div class="spinner"></div>
           <p>正在加载...</p>
         </div>
 
         <template v-else>
+          <!-- Error -->
           <div v-if="error" class="error-banner">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
@@ -134,7 +138,6 @@ onMounted(async () => {
           </div>
 
           <form class="editor-form" @submit.prevent="handleSubmit">
-            <!-- 标题输入 -->
             <div class="form-section">
               <label class="form-label">
                 文章标题
@@ -150,7 +153,6 @@ onMounted(async () => {
               <div class="input-hint">{{ title.length }}/100</div>
             </div>
 
-            <!-- 分类选择 -->
             <div class="form-section">
               <label class="form-label">
                 文章分类
@@ -162,18 +164,16 @@ onMounted(async () => {
                 </svg>
                 <select v-model="categoryId" class="category-select">
                   <option value="" disabled>请选择分类</option>
-                  <option
-                    v-for="cat in categories"
-                    :key="cat.id"
-                    :value="String(cat.id)"
-                  >
+                  <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">
                     {{ cat.name }}
                   </option>
                 </select>
+                <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
               </div>
             </div>
 
-            <!-- 内容输入 -->
             <div class="form-section content-section">
               <label class="form-label">
                 文章内容
@@ -187,16 +187,13 @@ onMounted(async () => {
               ></textarea>
             </div>
 
-            <!-- 操作按钮 -->
             <div class="form-actions">
               <button
                 type="button"
                 class="btn btn-ghost"
                 @click="router.push('/')"
                 :disabled="loading"
-              >
-                取消
-              </button>
+              >取消</button>
               <button
                 type="submit"
                 class="btn btn-primary"
@@ -214,25 +211,10 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+.page { min-height: 100vh; display: flex; flex-direction: column; }
+.main { flex: 1; padding: var(--space-10) 0 var(--space-16); }
+.editor-container { max-width: 800px; margin: 0 auto; padding: 0 var(--space-6); animation: fadeInUp 0.4s ease-out; }
 
-.main {
-  flex: 1;
-  padding: var(--space-10) 0 var(--space-16);
-}
-
-.editor-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 var(--space-6);
-  animation: fadeInUp 0.4s ease-out;
-}
-
-/* 页面头部 */
 .page-header {
   display: flex;
   align-items: flex-start;
@@ -243,11 +225,7 @@ onMounted(async () => {
   border-bottom: 1px solid var(--color-border-light);
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-}
+.header-left { display: flex; align-items: center; gap: var(--space-5); }
 
 .back-btn {
   display: flex;
@@ -261,16 +239,9 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.back-btn:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-}
+.back-btn:hover { color: var(--color-primary); background: var(--color-primary-light); }
 
-.page-title-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
+.page-title-group { display: flex; flex-direction: column; gap: var(--space-1); }
 
 .page-title {
   font-size: var(--font-size-3xl);
@@ -279,10 +250,7 @@ onMounted(async () => {
   letter-spacing: -0.5px;
 }
 
-.page-desc {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
+.page-desc { font-size: var(--font-size-sm); color: var(--color-text-muted); }
 
 .word-count {
   display: flex;
@@ -295,19 +263,9 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.count-number {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
-  font-variant-numeric: tabular-nums;
-}
+.count-number { font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); color: var(--color-primary); font-variant-numeric: tabular-nums; }
+.count-label { font-size: var(--font-size-sm); color: var(--color-text-muted); }
 
-.count-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-/* 加载状态 */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -326,10 +284,7 @@ onMounted(async () => {
   animation: spin 0.8s linear infinite;
 }
 
-.loading-state p {
-  font-size: var(--font-size-base);
-  color: var(--color-text-muted);
-}
+.loading-state p { font-size: var(--font-size-base); color: var(--color-text-muted); }
 
 .error-banner {
   display: flex;
@@ -343,18 +298,9 @@ onMounted(async () => {
   border-radius: var(--radius-md);
 }
 
-/* 表单样式 */
-.editor-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
+.editor-form { display: flex; flex-direction: column; gap: var(--space-6); }
 
-.form-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
+.form-section { display: flex; flex-direction: column; gap: var(--space-3); }
 
 .form-label {
   display: flex;
@@ -366,9 +312,7 @@ onMounted(async () => {
   margin-left: var(--space-1);
 }
 
-.required {
-  color: var(--color-error);
-}
+.required { color: var(--color-error); }
 
 .title-input {
   width: 100%;
@@ -379,24 +323,24 @@ onMounted(async () => {
   border-radius: var(--radius-lg);
 }
 
-.title-input::placeholder {
-  font-weight: var(--font-weight-normal);
-}
+.title-input::placeholder { font-weight: normal; }
 
-.input-hint {
-  align-self: flex-end;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
+.input-hint { align-self: flex-end; font-size: var(--font-size-xs); color: var(--color-text-muted); }
 
-/* 分类选择 */
-.category-select-wrapper {
-  position: relative;
-}
+.category-select-wrapper { position: relative; }
 
 .select-icon {
   position: absolute;
   left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-muted);
@@ -409,20 +353,12 @@ onMounted(async () => {
   font-size: var(--font-size-base);
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
   padding-right: 44px;
 }
 
-.category-select:hover {
-  border-color: var(--color-text-muted);
-}
+.category-select:hover { border-color: var(--color-text-muted); }
 
-/* 内容输入 */
-.content-section {
-  flex: 1;
-}
+.content-section { flex: 1; }
 
 .content-input {
   width: 100%;
@@ -434,7 +370,6 @@ onMounted(async () => {
   font-family: inherit;
 }
 
-/* 操作按钮 */
 .form-actions {
   display: flex;
   align-items: center;
@@ -457,51 +392,23 @@ onMounted(async () => {
   transition: all var(--transition-fast);
 }
 
-.btn-ghost {
-  color: var(--color-text-secondary);
-}
+.btn-ghost { color: var(--color-text-secondary); }
+.btn-ghost:hover:not(:disabled) { color: var(--color-text-primary); background: var(--color-bg-hover); }
 
-.btn-ghost:hover:not(:disabled) {
-  color: var(--color-text-primary);
-  background: var(--color-bg-hover);
-}
+.btn-primary { color: #ffffff; background: var(--color-primary); }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
 
-.btn-primary {
-  color: #ffffff;
-  background: var(--color-primary);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-.btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
+.btn:disabled { cursor: not-allowed; opacity: 0.6; }
 
 .spinner-sm {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255,255,255,0.3);
   border-top-color: #ffffff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>

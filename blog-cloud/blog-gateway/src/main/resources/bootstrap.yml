@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: blog-gateway
+  cloud:
+    nacos:
+      server-addr: ${NACOS_ADDR:localhost:8848}
+      config:
+        file-extension: yaml
+        group: DEFAULT_GROUP
+        refresh-enabled: true
+        shared-configs:
+          - dataId: blog-common.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+#      # 新增：服务注册发现配置，核心修复点
+#      discovery:
+#        # 强制优先使用IP注册，不用hostname
+#        prefer-ip-address: true
+#        group: DEFAULT_GROUP

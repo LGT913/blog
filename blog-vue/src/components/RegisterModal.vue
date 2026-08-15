@@ -16,8 +16,16 @@ const error = ref('')
 const loading = ref(false)
 
 const handleSubmit = async () => {
-  if (!username.value || !password.value || !nickname.value) {
-    error.value = '请填写所有字段'
+  if (!username.value.trim()) {
+    error.value = '请输入用户名'
+    return
+  }
+  if (!password.value) {
+    error.value = '请输入密码'
+    return
+  }
+  if (!nickname.value.trim()) {
+    error.value = '请输入昵称'
     return
   }
 
@@ -25,12 +33,13 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
-    const user = await userApi.register({
-      username: username.value,
+    await userApi.register({
+      username: username.value.trim(),
       password: password.value,
-      nickname: nickname.value
+      nickname: nickname.value.trim()
     })
-    userStore.login(user)
+    const loginResult = await userApi.login({ username: username.value.trim(), password: password.value })
+    userStore.login(loginResult.user, loginResult.token)
     emit('close')
     router.push('/')
   } catch (e) {
@@ -41,10 +50,11 @@ const handleSubmit = async () => {
 }
 
 const handleClose = () => {
+  error.value = ''
   emit('close')
 }
-
 const handleSwitch = () => {
+  error.value = ''
   emit('switch')
 }
 </script>
@@ -82,13 +92,7 @@ const handleSwitch = () => {
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            <input
-              v-model="username"
-              type="text"
-              class="form-input"
-              placeholder="请设置用户名"
-              autocomplete="username"
-            />
+            <input v-model="username" type="text" class="form-input" placeholder="请设置用户名" autocomplete="username" />
           </div>
         </div>
 
@@ -99,13 +103,7 @@ const handleSwitch = () => {
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            <input
-              v-model="nickname"
-              type="text"
-              class="form-input"
-              placeholder="请输入昵称"
-              autocomplete="nickname"
-            />
+            <input v-model="nickname" type="text" class="form-input" placeholder="请输入昵称" autocomplete="nickname" />
           </div>
         </div>
 
@@ -116,21 +114,11 @@ const handleSwitch = () => {
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
-            <input
-              v-model="password"
-              type="password"
-              class="form-input"
-              placeholder="请设置密码"
-              autocomplete="new-password"
-            />
+            <input v-model="password" type="password" class="form-input" placeholder="请设置密码" autocomplete="new-password" />
           </div>
         </div>
 
-        <button
-          type="submit"
-          :disabled="loading"
-          class="submit-btn"
-        >
+        <button type="submit" :disabled="loading" class="submit-btn">
           <span v-if="loading" class="spinner"></span>
           <span>{{ loading ? '注册中...' : '注册' }}</span>
         </button>
@@ -152,7 +140,7 @@ const handleSwitch = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   animation: fadeIn var(--transition-normal) ease-out;
 }
@@ -279,7 +267,7 @@ const handleSwitch = () => {
   margin-top: var(--space-2);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
-  color: #ffffff;
+  color: #141616;
   background: var(--color-primary);
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
@@ -292,8 +280,8 @@ const handleSwitch = () => {
 .spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
+  border: 2px solid rgba(26, 27, 30, 0.3);
+  border-top-color: #141616;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -326,14 +314,8 @@ const handleSwitch = () => {
 }
 
 @keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 @keyframes spin {

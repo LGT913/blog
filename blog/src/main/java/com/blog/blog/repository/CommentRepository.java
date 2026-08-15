@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     //查询某篇文章所有评论
     List<Comment> findByArticleIdOrderByCreateTimeDesc(Long articleId);

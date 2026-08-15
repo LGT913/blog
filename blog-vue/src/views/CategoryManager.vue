@@ -63,7 +63,7 @@ const handleAdd = async () => {
   error.value = ''
 
   try {
-    await categoryApi.create(newName.value.trim(), newDescription.value.trim())
+    await categoryApi.create({ name: newName.value.trim(), description: newDescription.value.trim() })
     newName.value = ''
     newDescription.value = ''
     await loadData()
@@ -92,7 +92,7 @@ const handleUpdate = async (id) => {
   }
 
   try {
-    await categoryApi.update(id, editingName.value.trim(), editingDescription.value.trim())
+    await categoryApi.update(id, { name: editingName.value.trim(), description: editingDescription.value.trim() })
     cancelEdit()
     await loadData()
   } catch (e) {
@@ -773,7 +773,7 @@ onMounted(() => {
 
 .category-card.editing {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(126, 200, 160, 0.15);
 }
 
 .cat-info {
@@ -904,12 +904,12 @@ onMounted(() => {
 }
 
 .icon-btn.confirm {
-  color: var(--color-success);
-  background: #ecfdf5;
+  color: var(--color-primary);
+  background: rgba(126, 200, 160, 0.15);
 }
 
 .icon-btn.confirm:hover:not(:disabled) {
-  background: #d1fae5;
+  background: rgba(126, 200, 160, 0.25);
 }
 
 .icon-btn.confirm:disabled {
@@ -976,14 +976,14 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   padding: 10px 12px;
-  background: var(--color-bg);
+  background: var(--color-bg-code);
   border-radius: 6px;
 }
 
 .ai-summary-bar {
   width: 3px;
   flex-shrink: 0;
-  background: #3b82f6;
+  background: var(--color-primary);
   border-radius: 2px;
 }
 

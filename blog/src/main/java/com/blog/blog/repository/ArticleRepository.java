@@ -4,13 +4,14 @@ import com.blog.blog.entity.Article;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Repository
 public interface ArticleRepository extends JpaRepository<Article, Long> {
     List<Article> findByUserIdOrderByCreateTimeDesc(Long userId);
     List<Article> findAllByOrderByCreateTimeDesc();
@@ -32,12 +33,28 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             String title, String content, Pageable pageable);
 
     // 按分类+关键词搜索分页，按创建时间倒序
-    @Query("SELECT a FROM Article a WHERE a.categoryId = :cid AND " +
-            "(a.title LIKE %:kw% OR a.content LIKE %:kw%) ORDER BY a.createTime DESC")
+    @Query("SELECT a FROM Article a WHERE a.categoryId = :cid AND (a.title LIKE :kw OR a.content LIKE :kw)")
     Page<Article> searchByCategoryAndKeyword(@Param("cid") String categoryId,
                                              @Param("kw") String keyword,
                                              Pageable pageable);
     // 查询所有文章 ID（给布隆过滤器初始化用）
     @Query("SELECT a.id FROM Article a")
     List<Long> findAllIds();
+
+    // 阅读量同步：按增量更新（而非覆盖），原子操作
+    @Modifying
+    @Transactional
+    @Query("UPDATE Article a SET a.viewCount = a.viewCount + :delta WHERE a.id = :id")
+    int incrementViewCount(@Param("id") Long id, @Param("delta") int delta);
+
+    //点赞
+    @Modifying
+    @Transactional
+    @Query("UPDATE Article a SET a.likeCount = a.likeCount + :delta WHERE a.id = :id")
+    int incrementLikeCount(@Param("id") Long id, @Param("delta") int delta);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Article a SET a.likeCount = :count WHERE a.id = :id")
+    int updateLikeCount(@Param("id") Long id, @Param("count") int count);
 }

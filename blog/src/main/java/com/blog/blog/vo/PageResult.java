@@ -3,6 +3,7 @@ package com.blog.blog.vo;
 import lombok.Data;
 import org.springframework.data.domain.Page;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -75,6 +76,21 @@ public class PageResult<T> {
         result.setHasNext(pageNumber < totalPages - 1);
         result.setHasPrevious(pageNumber > 0);
 
+        return result;
+    }
+
+    // 快速构造空结果（关键词为空时用，避免发 DB 查询）
+    public static <T> PageResult<T> empty(int page, int size) {
+        PageResult<T> result = new PageResult<>();
+        result.setContent(Collections.emptyList());
+        result.setNumber(page);
+        result.setSize(size);
+        result.setTotalElements(0);
+        result.setTotalPages(0);
+        result.setFirst(true);
+        result.setLast(true);
+        result.setHasNext(false);
+        result.setHasPrevious(false);
         return result;
     }
 }

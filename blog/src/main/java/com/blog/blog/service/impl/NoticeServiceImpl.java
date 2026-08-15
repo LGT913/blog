@@ -1,6 +1,6 @@
 package com.blog.blog.service.impl;
 
-import com.blog.blog.common.RedisUtil;
+import com.blog.blog.common.util.RedisUtil;
 import com.blog.blog.entity.Notice;
 import com.blog.blog.repository.NoticeRepository;
 import com.blog.blog.service.NoticeService;
@@ -21,7 +21,7 @@ public class NoticeServiceImpl implements NoticeService {
     private RedisUtil redisUtil;
 
     // Redis key 常量
-    private static final String NOTICE_LIST_KEY = "notice:list";
+    private static final String NOTICE_LIST_KEY = "blog:notice:list";
     private static final long NOTICE_LIST_EXPIRE = 600L;
 
     @Override

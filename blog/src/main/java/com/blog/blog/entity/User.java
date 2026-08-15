@@ -29,6 +29,9 @@ public class User {
     @Column(nullable = false)
     private Role role = Role.USER;
 
+    @Column(nullable = false)
+    private Boolean enabled = true;  // 账号状态：DB 是数据真相源，Redis 禁用标记只作为加速缓存
+
     public enum Role {
         USER,
         ADMIN

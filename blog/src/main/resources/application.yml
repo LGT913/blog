@@ -1,0 +1,85 @@
+server:
+  port: 8088
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/blog_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}      # 默认值仅用于本地开发
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}        # 企业级必须设密码,开发环境留空
+      database: 0
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 2
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:127.0.0.1}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD}  # 默认值仅用于本地 Docker 开发环境,生产必须通过环境变量覆盖
+    virtual-host: ${RABBITMQ_VHOST:/}
+    listener:
+      simple:
+        # Spring 默认 AUTO:方法正常返回就 ACK,抛异常就 NACK(重入队列/进死信)
+        # 配合 retry + DLX,足够满足绝大多数场景,且不用写 Channel 代码
+        acknowledge-mode: auto
+        prefetch: 10                     # 消费者预取数量,避免单消费者过载
+        default-requeue-rejected: false  # 【关键】方法抛异常后不重入原队列,直接进死信
+        retry:
+          enabled: true
+          max-retries: 3                # 本地最多重试 3 次,之后进死信队列Spring Boot 4.x正式废弃 max-attempts，强制使用新属性：max-retries
+          initial-interval: 1000ms
+
+  security:
+    user:
+      password: ${random.uuid}
+
+#CORS 配置
+cors:
+  # 允许的前端来源,多个用逗号分隔;支持通配符 * 或具体域名
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://your-frontend.com,https://admin.your-frontend.com,http://localhost:5173}
+
+#JWT 配置
+jwt:
+  # 敏感信息:通过环境变量 JWT_SECRET_KEY 注入
+  # 默认值仅用于本地开发,生产环境必须覆盖
+  secret-key: ${JWT_SECRET_KEY:MySecretKeyForJWTTokenGeneration2026BlogProject-DevOnly}
+  expiration-time: 86400000              # 24小时(毫秒)
+
+#DeepSeek AI 配置
+deepseek:
+  api:
+    key: ${DEEPSEEK_API_KEY:}
+    url: ${DEEPSEEK_API_URL:https://api.deepseek.com/v1/chat/completions}
+    timeout:
+      connect: 5000
+      read: 30000
+
+#日志配置(企业级标准)
+logging:
+  level:
+    root: INFO
+    com.blog.blog: DEBUG                 # 项目代码 DEBUG 级别
+    org.springframework.data.redis: WARN # Redis 日志只看警告
+    org.hibernate.SQL: WARN              # SQL 日志生产用 WARN,排查问题时临时开 DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"

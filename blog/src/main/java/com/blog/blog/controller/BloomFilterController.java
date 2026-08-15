@@ -1,8 +1,7 @@
 package com.blog.blog.controller;
 
-import com.blog.blog.common.BloomFilterUtil;
-import com.blog.blog.common.Result;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.blog.blog.common.util.BloomFilterUtil;
+import com.blog.blog.common.result.Result;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 

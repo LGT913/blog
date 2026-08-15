@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: blog-user-service
+  cloud:
+    nacos:
+      server-addr: ${NACOS_ADDR:nacos:8848}
+      namespace: ${NACOS_NAMESPACE:}
+      config:
+        file-extension: yaml
+        group: DEFAULT_GROUP
+        refresh-enabled: true
+        shared-configs:
+          - dataId: blog-common.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+      discovery:
+        ephemeral: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'

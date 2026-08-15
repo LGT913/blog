@@ -36,4 +36,11 @@ public class Article {
 
     @Column(columnDefinition = "int default 0")
     private Integer viewCount = 0;
+
+    @Column(columnDefinition = "int default 0")
+    private Integer likeCount = 0;
+
+    /** 作者昵称（非数据库字段，查询时批量填充，用于前端展示） */
+    @Transient
+    private String authorName;
 }

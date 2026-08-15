@@ -23,4 +23,12 @@ public interface ArticleService {
     // categoryId 为空时查询全部，不为空时按分类筛选
     // keyword 为空时不搜索，不为空时按标题/内容模糊搜索
     PageResult<Article> getAllArticlesPage(int page, int size, String categoryId, String keyword);
+
+    // 文章详情页访问时调用：Redis 阅读量 +1，并标记该文章为脏（待同步到 DB）
+    void incrementViewCount(Long articleId);
+
+    // 定时任务：将 Redis 中累计的阅读量增量同步到 MySQL（脏标记 + GETSET 原子归零）
+    void syncViewCountToDB();
+
+    void syncLikeCountToDB();
 }

@@ -22,3 +22,13 @@ blog-vue/.vscode/
 .DS_Store
 Thumbs.db
 *.log
+
+# 诊断/测试脚本
+test_*.py
+*diagnose_*.png
+*.pyc
+__pycache__/
+
+# 项目根级别的环境文件
+.env
+.env.*

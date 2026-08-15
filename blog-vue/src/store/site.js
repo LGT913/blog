@@ -1,10 +1,11 @@
 import { reactive } from 'vue'
 import { siteApi } from '../api'
+import { StorageKey, SiteConfigKey, CacheDuration } from '../utils/constants'
 
 // localStorage 缓存 key
-const SITE_CONFIG_KEY = 'blog_site_config'
+const SITE_CONFIG_KEY = StorageKey.SITE_CONFIG
 // 缓存有效期：24 小时（单位：毫秒）
-const CACHE_MAX_AGE = 24 * 60 * 60 * 1000
+const CACHE_MAX_AGE = CacheDuration.SITE_CONFIG
 
 // 默认兜底配置（接口失败、无缓存、退出登录时使用）
 const defaultConfig = {
@@ -94,8 +95,8 @@ const parseSiteConfig = (data) => {
 /**
  * 加载站点配置
  * 核心逻辑：
- * 1. 用户未登录时，直接使用默认配置，不请求后端，不缓存
- * 2. 用户已登录时，优先读缓存展示，后台静默更新
+ * 1. 优先读缓存展示，后台静默更新
+ * 2. 接口失败时使用默认配置
  * 3. 退出登录后调用 resetConfig()，isReset=true 阻止任何缓存写入
  *
  * @param {Object} options
@@ -104,19 +105,17 @@ const parseSiteConfig = (data) => {
 const loadConfig = async (options = {}) => {
   const { forceRefresh = false } = options
 
-  // 检查用户登录状态：未登录时直接使用默认配置
-  const token = localStorage.getItem('blog_token')
-  if (!token) {
-    console.log('[siteStore] 用户未登录，使用默认配置')
-    isReset = true
-    state.config = { ...defaultConfig }
-    state.loading = false
-    clearCachedConfig()
-    return
+  // 登录后强制刷新：重置 isReset 标志，允许重新加载
+  if (forceRefresh && isReset) {
+    isReset = false
   }
 
-  // 用户已登录，允许正常加载和缓存
-  isReset = false
+  // 已重置状态（退出登录后），直接使用默认配置，不请求后端
+  if (isReset) {
+    state.config = { ...defaultConfig }
+    state.loading = false
+    return
+  }
 
   // 1. 非强制刷新时，先尝试从本地缓存读取（提升首屏速度）
   if (!forceRefresh) {
@@ -124,13 +123,13 @@ const loadConfig = async (options = {}) => {
     if (cached) {
       state.config = cached
       state.loading = false
-      // 后台静默更新，不阻塞页面渲染
+      // 有缓存时后台静默更新（无论是否登录，接口是公开的）
       silentRefreshConfig()
       return
     }
   }
 
-  // 2. 无缓存或强制刷新时，直接请求后端
+  // 2. 无缓存或强制刷新时，请求后端
   await fetchConfigFromServer()
 }
 
@@ -140,7 +139,7 @@ const loadConfig = async (options = {}) => {
 const fetchConfigFromServer = async () => {
   state.loading = true
   try {
-    const data = await siteApi.getConfig('blog_info')
+    const data = await siteApi.getConfig(SiteConfigKey.BLOG_INFO)
     const parsedConfig = parseSiteConfig(data)
 
     state.config = parsedConfig
@@ -162,7 +161,7 @@ const fetchConfigFromServer = async () => {
  */
 const silentRefreshConfig = async () => {
   try {
-    const data = await siteApi.getConfig('blog_info')
+    const data = await siteApi.getConfig(SiteConfigKey.BLOG_INFO)
     const parsedConfig = parseSiteConfig(data)
 
     // 只有当数据真正发生变化时才更新状态和缓存
