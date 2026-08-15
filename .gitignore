@@ -39,3 +39,6 @@ __pycache__/
 # 本地AI工具文件
 .reasonix/
 reasonix.toml
+# IDE
+.idea/
+.vscode/
