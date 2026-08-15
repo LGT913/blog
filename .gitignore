@@ -32,3 +32,10 @@ __pycache__/
 # 项目根级别的环境文件
 .env
 .env.*
+
+**/*.properties
+**/*secret*.yml
+
+# 本地AI工具文件
+.reasonix/
+reasonix.toml
