@@ -1,5 +1,7 @@
 package com.blog.article.controller;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.blog.article.config.ArticleConfig;
 import com.blog.article.entity.Article;
 import com.blog.article.service.ArticleService;
@@ -50,11 +52,18 @@ public class ArticleController {
     }
 
     @GetMapping("/page")
+    @SentinelResource(value = "articlePage", blockHandler = "pageBlockHandler")
     public Result<PageResult<Article>> page(@RequestParam(name = "page", defaultValue = "0") int page,
                                             @RequestParam(name = "size", defaultValue = "10") int size,
                                             @RequestParam(name = "categoryId", required = false) String categoryId,
                                             @RequestParam(name = "keyword", required = false) String keyword) {
         return Result.success(articleService.getAllArticlesPage(page, size, categoryId, keyword));
+    }
+
+    // 限流降级方法：必须 static，参数与业务方法一致并追加 BlockException
+    public static Result<PageResult<Article>> pageBlockHandler(
+            int page, int size, String categoryId, String keyword, BlockException ex) {
+        return Result.error("请求过于频繁，请稍后再试");
     }
 
     @PutMapping("/{id}")

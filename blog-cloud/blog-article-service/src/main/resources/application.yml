@@ -44,6 +44,11 @@ spring:
           default:
             connect-timeout: 2000
             read-timeout: 3000
+    sentinel:
+      transport:
+        dashboard: sentinel-dashboard:8080   # 容器互通：服务名sentinel-dashboard + 容器内端口8080，不要写localhost/8858
+        port: 8719                  # 客户端上报端口，被占用会自动 +1，可省略
+      eager: true                   # 启动即注册到 Dashboard，方便验证
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

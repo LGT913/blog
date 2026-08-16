@@ -1,10 +1,12 @@
 package com.blog.article.service.impl;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.blog.article.config.ArticleConfig;
 import com.blog.article.entity.Comment;
 import com.blog.article.feign.UserFeignClient;
 import com.blog.article.repository.CommentRepository;
 import com.blog.article.service.CommentService;
+import com.blog.article.service.UserRemoteService;
 import com.blog.article.util.RedisUtil;
 import com.blog.common.result.Result;
 import lombok.RequiredArgsConstructor;
@@ -22,9 +24,9 @@ import java.util.Map;
 public class CommentServiceImpl implements CommentService {
 
     private final RedisUtil redisUtil;
-    private final UserFeignClient userFeignClient;
     private final CommentRepository commentRepository;
     private final ArticleConfig articleConfig;
+    private final UserRemoteService userRemoteService;
 
     @Override
     @Transactional
@@ -54,7 +56,7 @@ public class CommentServiceImpl implements CommentService {
         // 批量填充昵称
         for (Comment comment : comments) {
             try {
-                Result<Map<String, Object>> result = userFeignClient.getUserById(comment.getUserId());
+                Result<Map<String, Object>> result = userRemoteService.getUserInfo(comment.getUserId());
                 if (result.getData() != null) {
                     comment.setUsername((String) result.getData().get("username"));
                 }

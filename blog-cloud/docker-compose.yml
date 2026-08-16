@@ -5,6 +5,8 @@ services:
       MODE: standalone
       NACOS_AUTH_ENABLE: "false"
     ports: ["8848:8848", "9848:9848"]
+    networks:
+      - blog-network
   mysql:
     image: mysql:8
     environment:
@@ -12,6 +14,8 @@ services:
       MYSQL_DATABASE: blog_cloud
     ports: ["3306:3306"]
     volumes: [mysql_data:/var/lib/mysql]
+    networks:
+      - blog-network
   user-service:
     build: ./blog-user-service
     environment:
@@ -21,6 +25,8 @@ services:
       REDIS_HOST: redis
       REDIS_PASSWORD: 123456
     depends_on: [nacos, mysql,redis]
+    networks:
+      - blog-network
   article-service:
     build: ./blog-article-service
     environment:
@@ -30,12 +36,16 @@ services:
       REDIS_HOST: redis
       REDIS_PASSWORD: 123456
     depends_on: [nacos, mysql,redis]
+    networks:
+      - blog-network
   gateway:
     build: ./blog-gateway
 #    ports: ["8080:8080"]
     environment:
       NACOS_ADDR: nacos:8848
     depends_on: [nacos, user-service, article-service]
+    networks:
+      - blog-network
   redis:
     image: redis:7-alpine
     ports:
@@ -46,6 +56,8 @@ services:
       - REDIS_PASSWORD=123456
     command: redis-server --requirepass ${REDIS_PASSWORD}
     restart: always
+    networks:
+      - blog-network
   rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -54,6 +66,8 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     restart: always
+    networks:
+      - blog-network
   nginx:
     image: nginx:alpine
     ports:
@@ -63,8 +77,23 @@ services:
     depends_on:
       - gateway
     restart: always
+    networks:
+      - blog-network
+  sentinel-dashboard:
+    build: ./docker/sentinel
+    ports:
+      - "8858:8080"
+    container_name: sentinel-dashboard
+    restart: always
+    networks:
+      - blog-network
 
 volumes:
   mysql_data:
   redis_data:
   rabbitmq_data:
+
+# 全局定义网络 blog-network（和sentinel配置名称完全对应）
+networks:
+  blog-network:
+    driver: bridge

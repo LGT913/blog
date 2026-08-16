@@ -29,6 +29,9 @@ test_*.py
 *.pyc
 __pycache__/
 
+# Sentinel 控制台 jar（大二进制文件，本地构建用，不提交）
+sentinel-dashboard*.jar
+
 # 项目根级别的环境文件
 .env
 .env.*
